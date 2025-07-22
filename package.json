@@ -1,0 +1,141 @@
+{
+  "name": "cursor-rollback",
+  "displayName": "cursor_rollback",
+  "description": "",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.86.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cursor-rollback.helloWorld",
+        "title": "Hello World"
+      },
+      {
+        "command": "cursorRollback.restoreCheckpoint",
+        "title": "Rollback: Restore a Checkpoint"
+      },
+      {
+        "command": "cursorRollback.rewindChat",
+        "title": "Rollback: Rewind Chat Context"
+      },
+      {
+        "command": "cursorRollback.showRecoveryOptions",
+        "title": "Rollback: Show Recovery Options"
+      },
+      {
+        "command": "cursorRollback.createRecoveryState",
+        "title": "Rollback: Create Recovery State"
+      },
+      {
+        "command": "cursorRollback.viewActiveFailures",
+        "title": "Rollback: View Active Failures"
+      },
+      {
+        "command": "cursorRollback.cleanupRecoveryStates",
+        "title": "Rollback: Cleanup Recovery States"
+      },
+      {
+        "command": "cursorRollback.manualRecovery",
+        "title": "Rollback: Manual Recovery"
+      },
+      {
+        "command": "cursorCompanion.refreshConversations",
+        "title": "Refresh Conversations",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "cursorCompanion.searchConversations",
+        "title": "Search Conversations",
+        "icon": "$(search)"
+      },
+      {
+        "command": "cursorCompanion.showMessageDetails",
+        "title": "Show Message Details"
+      },
+      {
+        "command": "cursorCompanion.rollbackToMessage",
+        "title": "Rollback to Message",
+        "icon": "$(history)"
+      },
+      {
+        "command": "cursorCompanion.archiveConversation",
+        "title": "Archive Conversation",
+        "icon": "$(archive)"
+      },
+      {
+        "command": "cursorCompanion.deleteConversation",
+        "title": "Delete Conversation",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "cursorCompanion.showRollbackOptions",
+        "title": "Show Rollback Options"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "cursorCompanionConversations",
+          "name": "Cursor Conversations",
+          "when": "true"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "cursorCompanion.refreshConversations",
+          "when": "view == cursorCompanionConversations",
+          "group": "navigation"
+        },
+        {
+          "command": "cursorCompanion.searchConversations",
+          "when": "view == cursorCompanionConversations",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "cursorCompanion.rollbackToMessage",
+          "when": "view == cursorCompanionConversations && viewItem == message",
+          "group": "inline"
+        },
+        {
+          "command": "cursorCompanion.archiveConversation",
+          "when": "view == cursorCompanionConversations && viewItem == conversation",
+          "group": "conversation"
+        },
+        {
+          "command": "cursorCompanion.deleteConversation",
+          "when": "view == cursorCompanionConversations && viewItem == conversation",
+          "group": "conversation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "pnpm run compile && pnpm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.86.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
+    "eslint": "^9.25.1",
+    "typescript": "^5.8.3",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
