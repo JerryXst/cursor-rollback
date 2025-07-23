@@ -5,3 +5,5 @@ export * from './codeChange';
 export * from './fileSnapshot';
 export * from './common';
 export * from './errors';
+export * from './validation';
+export * from './factories';

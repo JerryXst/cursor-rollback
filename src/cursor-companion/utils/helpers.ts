@@ -1,135 +1,65 @@
-import * as crypto from 'crypto';
+/**
+ * Helper utilities for Cursor Companion
+ */
 
 /**
- * Generate a unique ID
+ * Generate a simple UUID v4
+ * This is a simplified implementation for when the uuid package is not available
  */
-export function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+export function generateUUID(): string {
+  // Simple UUID v4 implementation
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 }
 
 /**
- * Calculate checksum for content
+ * Calculate SHA-256 checksum for content
+ * Simple implementation when crypto is not available
  */
 export function calculateChecksum(content: string): string {
-  return crypto.createHash('sha256').update(content).digest('hex');
-}
-
-/**
- * Debounce function calls
- */
-export function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
+  // Simple hash function for when crypto is not available
+  let hash = 0;
+  if (content.length === 0) return hash.toString(16);
   
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-}
-
-/**
- * Throttle function calls
- */
-export function throttle<T extends (...args: any[]) => any>(
-  func: T,
-  limit: number
-): (...args: Parameters<T>) => void {
-  let inThrottle: boolean;
-  
-  return (...args: Parameters<T>) => {
-    if (!inThrottle) {
-      func(...args);
-      inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
-    }
-  };
-}
-
-/**
- * Format file size in human readable format
- */
-export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
-  
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-/**
- * Format timestamp as relative time
- */
-export function formatRelativeTime(timestamp: number): string {
-  const now = Date.now();
-  const diff = now - timestamp;
-  
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  
-  if (days > 0) {
-    return `${days} day${days > 1 ? 's' : ''} ago`;
-  } else if (hours > 0) {
-    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-  } else if (minutes > 0) {
-    return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-  } else {
-    return 'Just now';
-  }
-}
-
-/**
- * Sanitize text for display
- */
-export function sanitizeText(text: string, maxLength: number = 100): string {
-  // Remove excessive whitespace
-  const cleaned = text.replace(/\s+/g, ' ').trim();
-  
-  // Truncate if too long
-  if (cleaned.length > maxLength) {
-    return cleaned.substring(0, maxLength - 3) + '...';
+  for (let i = 0; i < content.length; i++) {
+    const char = content.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
   }
   
-  return cleaned;
+  // Convert to hex string and pad to ensure consistent length
+  return (hash >>> 0).toString(16).padStart(8, '0');
 }
 
 /**
- * Check if a file path should be ignored
+ * Format a timestamp as a readable date string
  */
-export function shouldIgnoreFile(filePath: string): boolean {
-  const ignorePatterns = [
-    /node_modules/,
-    /\.git/,
-    /\.vscode/,
-    /out/,
-    /dist/,
-    /build/,
-    /\.DS_Store/,
-    /Thumbs\.db/,
-    /\.log$/,
-    /\.tmp$/,
-    /\.temp$/
-  ];
-  
-  return ignorePatterns.some(pattern => pattern.test(filePath));
+export function formatTimestamp(timestamp: number): string {
+  return new Date(timestamp).toLocaleString();
 }
 
 /**
- * Extract language from file extension
+ * Truncate a string to a maximum length with ellipsis
  */
-export function getLanguageFromPath(filePath: string): string {
-  const ext = filePath.split('.').pop()?.toLowerCase();
+export function truncateString(str: string, maxLength: number): string {
+  if (str.length <= maxLength) return str;
+  return str.substring(0, maxLength - 3) + '...';
+}
+
+/**
+ * Detect programming language from file path
+ */
+export function detectLanguage(filePath: string): string {
+  const extension = filePath.split('.').pop()?.toLowerCase();
   
-  const languageMap: { [key: string]: string } = {
+  const languageMap: Record<string, string> = {
     'ts': 'typescript',
     'js': 'javascript',
-    'tsx': 'typescriptreact',
-    'jsx': 'javascriptreact',
+    'tsx': 'typescript',
+    'jsx': 'javascript',
     'py': 'python',
     'java': 'java',
     'cpp': 'cpp',
@@ -153,39 +83,43 @@ export function getLanguageFromPath(filePath: string): string {
     'yml': 'yaml',
     'md': 'markdown',
     'sql': 'sql',
-    'sh': 'shellscript',
-    'bash': 'shellscript',
-    'zsh': 'shellscript'
+    'sh': 'shell',
+    'bash': 'shell',
+    'zsh': 'shell'
   };
-  
-  return languageMap[ext || ''] || 'plaintext';
+
+  return languageMap[extension || ''] || 'text';
 }
 
 /**
- * Retry an async operation with exponential backoff
+ * Estimate token count for a message (rough approximation)
  */
-export async function retryWithBackoff<T>(
-  operation: () => Promise<T>,
-  maxRetries: number = 3,
-  baseDelay: number = 1000
-): Promise<T> {
-  let lastError: Error;
-  
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error('Unknown error');
-      
-      if (attempt === maxRetries) {
-        throw lastError;
-      }
-      
-      // Exponential backoff with jitter
-      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
+export function estimateTokenCount(content: string): number {
+  // Rough approximation: 1 token ≈ 4 characters
+  return Math.ceil(content.length / 4);
+}
+
+/**
+ * Deep clone an object
+ */
+export function deepClone<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+/**
+ * Check if two objects are deeply equal
+ */
+export function deepEqual(obj1: any, obj2: any): boolean {
+  return JSON.stringify(obj1) === JSON.stringify(obj2);
+}
+
+/**
+ * Safely parse JSON with error handling
+ */
+export function safeJsonParse<T>(json: string, fallback: T): T {
+  try {
+    return JSON.parse(json) as T;
+  } catch (e) {
+    return fallback;
   }
-  
-  throw lastError!;
 }
