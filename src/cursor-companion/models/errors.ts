@@ -24,7 +24,8 @@ export enum ErrorCategory {
   ROLLBACK = 'rollback',
   UI = 'ui',
   SNAPSHOT = 'snapshot',
-  SYSTEM = 'system'
+  SYSTEM = 'system',
+  DATA_INTEGRITY = 'data_integrity'
 }
 
 /**
@@ -73,6 +74,14 @@ export class SnapshotError extends CursorCompanionError {
 export class SystemError extends CursorCompanionError {
   readonly code = 'SYSTEM_ERROR';
   readonly category = ErrorCategory.SYSTEM;
+}
+
+/**
+ * Data integrity errors
+ */
+export class DataIntegrityError extends CursorCompanionError {
+  readonly code = 'DATA_INTEGRITY_ERROR';
+  readonly category = ErrorCategory.DATA_INTEGRITY;
 }
 
 /**

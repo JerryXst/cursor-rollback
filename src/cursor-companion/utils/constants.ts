@@ -128,3 +128,23 @@ export const LIMITS = {
   MAX_SEARCH_RESULTS: 100,
   MAX_RECENT_CONVERSATIONS: 50
 } as const;
+
+/**
+ * Data integrity constants
+ */
+export const DATA_INTEGRITY = {
+  // Validation intervals
+  INTEGRITY_CHECK_INTERVAL: 3600000, // 1 hour
+  
+  // Repair options
+  AUTO_REPAIR_MINOR_ISSUES: true,
+  CREATE_BACKUP_BEFORE_REPAIR: true,
+  
+  // Checksum algorithms
+  PREFERRED_CHECKSUM_ALGORITHM: 'sha256',
+  FALLBACK_CHECKSUM_ALGORITHM: 'simple',
+  
+  // Error thresholds
+  MAX_TOLERABLE_ERRORS: 5,
+  CORRUPTION_SEVERITY_THRESHOLD: 3
+} as const;

@@ -255,6 +255,9 @@ export function validateFileSnapshot(snapshot: Partial<FileSnapshot>): Validatio
   // Required fields
   if (!snapshot.filePath || typeof snapshot.filePath !== 'string' || snapshot.filePath.trim() === '') {
     errors.push(new ValidationError('File path is required and must be a non-empty string', 'filePath', snapshot.filePath));
+  } else if (snapshot.filePath.includes('..')) {
+    // Prevent path traversal
+    errors.push(new ValidationError('File path cannot contain path traversal sequences', 'filePath', snapshot.filePath));
   }
 
   if (typeof snapshot.content !== 'string') {
@@ -263,16 +266,31 @@ export function validateFileSnapshot(snapshot: Partial<FileSnapshot>): Validatio
 
   if (typeof snapshot.timestamp !== 'number' || snapshot.timestamp <= 0) {
     errors.push(new ValidationError('Timestamp must be a positive number', 'timestamp', snapshot.timestamp));
+  } else if (snapshot.timestamp > Date.now() + 60000) { // Allow 1 minute clock skew
+    errors.push(new ValidationError('Timestamp cannot be in the future', 'timestamp', snapshot.timestamp));
   }
 
   if (!snapshot.checksum || typeof snapshot.checksum !== 'string' || snapshot.checksum.trim() === '') {
     errors.push(new ValidationError('Checksum is required and must be a non-empty string', 'checksum', snapshot.checksum));
+  } else if (!/^[a-f0-9]+$/i.test(snapshot.checksum)) {
+    // Ensure checksum is a valid hex string
+    errors.push(new ValidationError('Checksum must be a valid hexadecimal string', 'checksum', snapshot.checksum));
   }
 
   // Metadata validation
   if (snapshot.metadata) {
     if (typeof snapshot.metadata.size === 'number' && snapshot.metadata.size < 0) {
       errors.push(new ValidationError('File size cannot be negative', 'metadata.size', snapshot.metadata.size));
+    } else if (typeof snapshot.metadata.size === 'number' && snapshot.content) {
+      // Verify size matches content length if both are provided
+      const contentByteLength = new TextEncoder().encode(snapshot.content).length;
+      if (Math.abs(contentByteLength - snapshot.metadata.size) > 10) { // Allow small difference due to encoding
+        errors.push(new ValidationError(
+          `File size (${snapshot.metadata.size}) doesn't match content length (${contentByteLength})`,
+          'metadata.size',
+          { declared: snapshot.metadata.size, actual: contentByteLength }
+        ));
+      }
     }
 
     if (snapshot.metadata.encoding && typeof snapshot.metadata.encoding !== 'string') {

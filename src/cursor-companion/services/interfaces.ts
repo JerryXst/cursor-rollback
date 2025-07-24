@@ -70,6 +70,29 @@ export interface IDataStorage {
   
   /** Clean up old data */
   cleanup(olderThanDays: number): Promise<void>;
+  
+  /** Migrate all data to the current schema version */
+  migrateData(options?: {
+    createBackups?: boolean;
+    progressCallback?: (current: number, total: number) => void;
+  }): Promise<any>;
+  
+  /** Verify data integrity of all stored conversations */
+  verifyDataIntegrity(): Promise<{
+    totalChecked: number;
+    corruptedItems: number;
+    errors: Error[];
+  }>;
+  
+  /** Repair corrupted conversation data */
+  repairConversationData(conversation: Conversation): Promise<{
+    success: boolean;
+    repairedFields: string[];
+    errors: Error[];
+  }>;
+  
+  /** Create a backup of a conversation */
+  createBackup(conversationId: string): Promise<string>;
 }
 
 /**
