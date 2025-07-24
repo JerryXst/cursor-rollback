@@ -191,3 +191,20 @@ export interface IUIManager {
   /** Register callback for rollback requests */
   onRollbackRequest(callback: (messageId: string) => void): void;
 }
+
+/**
+ * Interface for managing conversation context
+ */
+export interface IConversationContextManager {
+  /** Capture current conversation context */
+  captureContext(conversationId: string, messageId: string): Promise<any>;
+  
+  /** Rollback conversation context to a specific message point */
+  rollbackContext(messageId: string): Promise<boolean>;
+  
+  /** Get conversation context truncated to a specific message */
+  getTruncatedContext(messageId: string): Promise<any>;
+  
+  /** Clean up old context history */
+  cleanupOldContexts(maxAge?: number): void;
+}

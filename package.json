@@ -1,13 +1,17 @@
 {
   "name": "cursor-rollback",
-  "displayName": "cursor_rollback",
-  "description": "",
+  "displayName": "Cursor Companion",
+  "description": "Advanced conversation tracking and rollback system for Cursor AI",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.86.0"
   },
   "categories": [
     "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onView:cursorCompanionConversations"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -76,6 +80,188 @@
       {
         "command": "cursorCompanion.showRollbackOptions",
         "title": "Show Rollback Options"
+      },
+      {
+        "command": "cursorCompanion.clearFilters",
+        "title": "Clear Filters",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "cursorCompanion.filterByStatus",
+        "title": "Filter by Status",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "cursorCompanion.selectConversation",
+        "title": "Select Conversation"
+      },
+      {
+        "command": "cursorCompanion.selectMessage",
+        "title": "Select Message"
+      },
+      {
+        "command": "cursorCompanion.exportConversation",
+        "title": "Export Conversation",
+        "icon": "$(export)"
+      },
+      {
+        "command": "cursorCompanion.duplicateConversation",
+        "title": "Duplicate Conversation",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "cursorCompanion.retryLoadMessages",
+        "title": "Retry Load Messages",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "cursorCompanion.showStats",
+        "title": "Show Statistics",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "cursorCompanion.searchInMessages",
+        "title": "Search in Messages",
+        "icon": "$(search-view)"
+      },
+      {
+        "command": "cursorCompanion.contextMenuAction",
+        "title": "Context Menu Action"
+      },
+      {
+        "command": "cursorCompanion.quickSearch",
+        "title": "Quick Search",
+        "icon": "$(search)"
+      },
+      {
+        "command": "cursorCompanion.advancedSearch",
+        "title": "Advanced Search",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "cursorCompanion.clearSearch",
+        "title": "Clear Search",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "cursorCompanion.exportSearchResults",
+        "title": "Export Search Results",
+        "icon": "$(export)"
+      },
+      {
+        "command": "cursorCompanion.copyMessageContent",
+        "title": "Copy Message Content",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "cursorCompanion.addTag",
+        "title": "Add Tag",
+        "icon": "$(tag)"
+      },
+      {
+        "command": "cursorCompanion.removeTag",
+        "title": "Remove Tag",
+        "icon": "$(tag)"
+      },
+      {
+        "command": "cursorCompanion.showDiagnostics",
+        "title": "Show Diagnostics",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "cursorCompanion.runHealthCheck",
+        "title": "Run Health Check",
+        "icon": "$(heart)"
+      },
+      {
+        "command": "cursorCompanion.exportDiagnostics",
+        "title": "Export Diagnostics",
+        "icon": "$(export)"
+      },
+      {
+        "command": "cursorCompanion.clearErrorLog",
+        "title": "Clear Error Log",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "cursorCompanion.showErrorStatistics",
+        "title": "Show Error Statistics",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "cursorCompanion.resetExtensionState",
+        "title": "Reset Extension State",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "cursorCompanion.createBackup",
+        "title": "Create Backup",
+        "icon": "$(save)"
+      },
+      {
+        "command": "cursorCompanion.restoreBackup",
+        "title": "Restore Backup",
+        "icon": "$(history)"
+      },
+      {
+        "command": "cursorCompanion.listBackups",
+        "title": "List Backups",
+        "icon": "$(list-unordered)"
+      },
+      {
+        "command": "cursorCompanion.deleteBackup",
+        "title": "Delete Backup",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "cursorCompanion.retryRollback",
+        "title": "Retry Rollback",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "cursorCompanion.showRollbackHistory",
+        "title": "Show Rollback History",
+        "icon": "$(history)"
+      },
+      {
+        "command": "cursorCompanion.captureContext",
+        "title": "Capture Context",
+        "icon": "$(camera)"
+      },
+      {
+        "command": "cursorCompanion.restoreContext",
+        "title": "Restore Context",
+        "icon": "$(history)"
+      },
+      {
+        "command": "cursorCompanion.openSettings",
+        "title": "Open Settings",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "cursorCompanion.showConfigurationUI",
+        "title": "Show Configuration UI",
+        "icon": "$(settings)"
+      },
+      {
+        "command": "cursorCompanion.exportConfiguration",
+        "title": "Export Configuration",
+        "icon": "$(export)"
+      },
+      {
+        "command": "cursorCompanion.importConfiguration",
+        "title": "Import Configuration",
+        "icon": "$(import)"
+      },
+      {
+        "command": "cursorCompanion.resetConfiguration",
+        "title": "Reset Configuration",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "cursorCompanion.migrateConfiguration",
+        "title": "Migrate Configuration",
+        "icon": "$(arrow-right)"
       }
     ],
     "views": {
@@ -87,34 +273,317 @@
         }
       ]
     },
+    "configuration": {
+      "title": "Cursor Companion",
+      "properties": {
+        "cursor-companion.autoTrack": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically track Cursor conversations"
+        },
+        "cursor-companion.maxConversations": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 10,
+          "maximum": 10000,
+          "description": "Maximum number of conversations to keep"
+        },
+        "cursor-companion.snapshotRetention": {
+          "type": "number",
+          "default": 30,
+          "minimum": 1,
+          "maximum": 365,
+          "description": "Number of days to retain file snapshots"
+        },
+        "cursor-companion.enableDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable diagnostic information collection"
+        },
+        "cursor-companion.autoBackup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically create backups before rollback operations"
+        },
+        "cursor-companion.maxBackups": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Maximum number of backups to keep"
+        },
+        "cursor-companion.showRollbackConfirmation": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show confirmation dialog before rollback operations"
+        },
+        "cursor-companion.enableErrorRecovery": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable automatic error recovery"
+        },
+        "cursor-companion.logLevel": {
+          "type": "string",
+          "enum": ["error", "warning", "info", "debug"],
+          "default": "info",
+          "description": "Logging level for diagnostic information"
+        },
+        "cursor-companion.performanceMonitoring": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable performance monitoring"
+        },
+        "cursor-companion.showActivationMessage": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show message when extension activates"
+        },
+        "cursor-companion.trackingMode": {
+          "type": "string",
+          "enum": ["automatic", "manual", "disabled"],
+          "default": "automatic",
+          "description": "Conversation tracking mode"
+        },
+        "cursor-companion.uiTheme": {
+          "type": "string",
+          "enum": ["auto", "light", "dark"],
+          "default": "auto",
+          "description": "UI theme preference"
+        },
+        "cursor-companion.search.caseSensitive": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use case-sensitive search"
+        },
+        "cursor-companion.search.useRegex": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable regex search"
+        },
+        "cursor-companion.search.maxResults": {
+          "type": "number",
+          "default": 100,
+          "minimum": 10,
+          "maximum": 1000,
+          "description": "Maximum number of search results"
+        },
+        "cursor-companion.search.highlightMatches": {
+          "type": "boolean",
+          "default": true,
+          "description": "Highlight search matches"
+        },
+        "cursor-companion.rollback.createBackupByDefault": {
+          "type": "boolean",
+          "default": true,
+          "description": "Create backup by default during rollback"
+        },
+        "cursor-companion.rollback.resetContextByDefault": {
+          "type": "boolean",
+          "default": false,
+          "description": "Reset conversation context by default during rollback"
+        },
+        "cursor-companion.rollback.showProgressDialog": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show progress dialog during rollback"
+        },
+        "cursor-companion.rollback.maxRollbackHistory": {
+          "type": "number",
+          "default": 50,
+          "minimum": 10,
+          "maximum": 200,
+          "description": "Maximum number of rollback history entries"
+        },
+        "cursor-companion.storage.compressionEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable data compression"
+        },
+        "cursor-companion.storage.encryptionEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable data encryption"
+        },
+        "cursor-companion.storage.cleanupInterval": {
+          "type": "number",
+          "default": 24,
+          "minimum": 1,
+          "maximum": 168,
+          "description": "Cleanup interval in hours"
+        },
+        "cursor-companion.storage.maxStorageSize": {
+          "type": "number",
+          "default": 1024,
+          "minimum": 100,
+          "maximum": 10240,
+          "description": "Maximum storage size in MB"
+        }
+      }
+    },
     "menus": {
       "view/title": [
         {
           "command": "cursorCompanion.refreshConversations",
           "when": "view == cursorCompanionConversations",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
           "command": "cursorCompanion.searchConversations",
           "when": "view == cursorCompanionConversations",
-          "group": "navigation"
+          "group": "navigation@2"
+        },
+        {
+          "command": "cursorCompanion.searchInMessages",
+          "when": "view == cursorCompanionConversations",
+          "group": "navigation@3"
+        },
+        {
+          "command": "cursorCompanion.filterByStatus",
+          "when": "view == cursorCompanionConversations",
+          "group": "filter@1"
+        },
+        {
+          "command": "cursorCompanion.clearFilters",
+          "when": "view == cursorCompanionConversations",
+          "group": "filter@2"
+        },
+        {
+          "command": "cursorCompanion.showStats",
+          "when": "view == cursorCompanionConversations",
+          "group": "info@1"
+        },
+        {
+          "command": "cursorCompanion.showDiagnostics",
+          "when": "view == cursorCompanionConversations",
+          "group": "info@2"
+        },
+        {
+          "command": "cursorCompanion.runHealthCheck",
+          "when": "view == cursorCompanionConversations",
+          "group": "info@3"
+        },
+        {
+          "command": "cursorCompanion.listBackups",
+          "when": "view == cursorCompanionConversations",
+          "group": "backup@1"
+        },
+        {
+          "command": "cursorCompanion.createBackup",
+          "when": "view == cursorCompanionConversations",
+          "group": "backup@2"
         }
       ],
       "view/item/context": [
         {
           "command": "cursorCompanion.rollbackToMessage",
           "when": "view == cursorCompanionConversations && viewItem == message",
-          "group": "inline"
+          "group": "inline@1"
+        },
+        {
+          "command": "cursorCompanion.showMessageDetails",
+          "when": "view == cursorCompanionConversations && viewItem == message",
+          "group": "message@1"
+        },
+        {
+          "command": "cursorCompanion.copyMessageContent",
+          "when": "view == cursorCompanionConversations && viewItem == message",
+          "group": "message@2"
+        },
+        {
+          "command": "cursorCompanion.exportConversation",
+          "when": "view == cursorCompanionConversations && viewItem == conversation",
+          "group": "conversation@1"
+        },
+        {
+          "command": "cursorCompanion.duplicateConversation",
+          "when": "view == cursorCompanionConversations && viewItem == conversation",
+          "group": "conversation@2"
+        },
+        {
+          "command": "cursorCompanion.addTag",
+          "when": "view == cursorCompanionConversations && viewItem == conversation",
+          "group": "conversation@3"
+        },
+        {
+          "command": "cursorCompanion.removeTag",
+          "when": "view == cursorCompanionConversations && viewItem == conversation && cursorCompanion.conversationHasTags",
+          "group": "conversation@4"
         },
         {
           "command": "cursorCompanion.archiveConversation",
           "when": "view == cursorCompanionConversations && viewItem == conversation",
-          "group": "conversation"
+          "group": "conversation@5"
         },
         {
           "command": "cursorCompanion.deleteConversation",
           "when": "view == cursorCompanionConversations && viewItem == conversation",
-          "group": "conversation"
+          "group": "conversation@6"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "cursorCompanion.showDiagnostics",
+          "when": "true"
+        },
+        {
+          "command": "cursorCompanion.runHealthCheck",
+          "when": "true"
+        },
+        {
+          "command": "cursorCompanion.exportDiagnostics",
+          "when": "true"
+        },
+        {
+          "command": "cursorCompanion.clearErrorLog",
+          "when": "true"
+        },
+        {
+          "command": "cursorCompanion.showErrorStatistics",
+          "when": "true"
+        },
+        {
+          "command": "cursorCompanion.resetExtensionState",
+          "when": "true"
+        },
+        {
+          "command": "cursorCompanion.createBackup",
+          "when": "true"
+        },
+        {
+          "command": "cursorCompanion.restoreBackup",
+          "when": "true"
+        },
+        {
+          "command": "cursorCompanion.listBackups",
+          "when": "true"
+        },
+        {
+          "command": "cursorCompanion.showRollbackHistory",
+          "when": "true"
+        },
+        {
+          "command": "cursorCompanion.openSettings",
+          "when": "true"
+        },
+        {
+          "command": "cursorCompanion.showConfigurationUI",
+          "when": "true"
+        },
+        {
+          "command": "cursorCompanion.exportConfiguration",
+          "when": "true"
+        },
+        {
+          "command": "cursorCompanion.importConfiguration",
+          "when": "true"
+        },
+        {
+          "command": "cursorCompanion.resetConfiguration",
+          "when": "true"
+        },
+        {
+          "command": "cursorCompanion.migrateConfiguration",
+          "when": "true"
         }
       ]
     }

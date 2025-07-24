@@ -149,13 +149,22 @@ export class MessageFactory {
   }
 
   /**
-   * Creates a user message
+   * Creates a user message with optional code changes
    */
-  static createUserMessage(conversationId: string, content: string): Message {
+  static createUserMessage(
+    conversationId: string, 
+    content: string,
+    codeChanges?: CodeChange[]
+  ): Message {
     return this.create({
       conversationId,
       content,
-      sender: 'user'
+      sender: 'user',
+      codeChanges,
+      metadata: {
+        tokenCount: this.estimateTokenCount(content),
+        hasErrors: false
+      }
     });
   }
 
