@@ -223,3 +223,5 @@ suite('DataIndexer Tests', () => {
     const results = await indexer.searchMessages('performance');
     
     assert.ok(!results.some(r => r.message.id === 'test-msg-1'), 'Should not find removed message');
+  });
+});
