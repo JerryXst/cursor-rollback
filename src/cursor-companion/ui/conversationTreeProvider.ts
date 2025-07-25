@@ -146,7 +146,7 @@ export class MessageTreeItem extends vscode.TreeItem {
 }
 
 /**
- * Tree data provider for conversations
+ * Tree data provider for conversations with virtual scrolling and performance optimizations
  */
 export class ConversationTreeProvider implements vscode.TreeDataProvider<ConversationTreeItem | MessageTreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<ConversationTreeItem | MessageTreeItem | undefined | null | void> = new vscode.EventEmitter<ConversationTreeItem | MessageTreeItem | undefined | null | void>();
@@ -158,11 +158,27 @@ export class ConversationTreeProvider implements vscode.TreeDataProvider<Convers
   private isLoading = false;
   private loadingTimeout: NodeJS.Timeout | undefined;
 
+  // Virtual scrolling properties
+  private readonly pageSize = 50;
+  private currentPage = 0;
+  private totalConversations = 0;
+  private hasMoreConversations = true;
+
+  // Performance optimization properties
+  private conversationCache = new Map<string, ConversationTreeItem>();
+  private messageCache = new Map<string, MessageTreeItem[]>();
+  private refreshDebounceTimer?: NodeJS.Timeout;
+  private readonly refreshDebounceDelay = 100;
+
+  // Lazy loading properties
+  private loadingConversations = new Set<string>();
+  private loadingMessages = new Set<string>();
+
   constructor(private dataStorage: IDataStorage) {
-    // Auto-refresh every 30 seconds
+    // Auto-refresh every 30 seconds with debouncing
     setInterval(() => {
       if (!this.isLoading) {
-        this.loadConversations();
+        this.debouncedRefresh();
       }
     }, 30000);
   }
@@ -171,7 +187,20 @@ export class ConversationTreeProvider implements vscode.TreeDataProvider<Convers
     this._onDidChangeTreeData.fire();
   }
 
-  async loadConversations(showProgress = false): Promise<void> {
+  /**
+   * Debounced refresh to prevent excessive UI updates
+   */
+  private debouncedRefresh(): void {
+    if (this.refreshDebounceTimer) {
+      clearTimeout(this.refreshDebounceTimer);
+    }
+
+    this.refreshDebounceTimer = setTimeout(() => {
+      this.refresh();
+    }, this.refreshDebounceDelay);
+  }
+
+  async loadConversations(showProgress = false, reset = false): Promise<void> {
     if (this.isLoading) {
       return;
     }
@@ -179,25 +208,84 @@ export class ConversationTreeProvider implements vscode.TreeDataProvider<Convers
     this.isLoading = true;
 
     try {
+      if (reset) {
+        this.currentPage = 0;
+        this.conversations = [];
+        this.conversationCache.clear();
+        this.messageCache.clear();
+      }
+
       if (showProgress) {
         await vscode.window.withProgress({
           location: vscode.ProgressLocation.Window,
           title: 'Loading conversations...',
           cancellable: false
         }, async () => {
-          this.conversations = await this.dataStorage.getConversations(this.currentFilter);
+          await this.loadConversationsPage();
         });
       } else {
-        this.conversations = await this.dataStorage.getConversations(this.currentFilter);
+        await this.loadConversationsPage();
       }
       
-      this.refresh();
+      this.debouncedRefresh();
     } catch (error) {
       console.error('Failed to load conversations:', error);
       vscode.window.showErrorMessage('Failed to load conversations');
     } finally {
       this.isLoading = false;
     }
+  }
+
+  /**
+   * Load a page of conversations with virtual scrolling
+   */
+  private async loadConversationsPage(): Promise<void> {
+    // Check if we have a performance manager available for pagination
+    const performanceManager = (this.dataStorage as any).performanceManager;
+    
+    if (performanceManager && typeof performanceManager.getConversationsPaginated === 'function') {
+      // Use performance manager's pagination
+      const result = await performanceManager.getConversationsPaginated(
+        this.currentPage,
+        this.pageSize,
+        this.currentFilter
+      );
+      
+      if (this.currentPage === 0) {
+        this.conversations = result.items;
+      } else {
+        this.conversations.push(...result.items);
+      }
+      
+      this.totalConversations = result.totalCount;
+      this.hasMoreConversations = result.hasMore;
+    } else {
+      // Fallback to regular loading with manual pagination
+      const allConversations = await this.dataStorage.getConversations(this.currentFilter);
+      const startIndex = this.currentPage * this.pageSize;
+      const endIndex = Math.min(startIndex + this.pageSize, allConversations.length);
+      
+      if (this.currentPage === 0) {
+        this.conversations = allConversations.slice(startIndex, endIndex);
+      } else {
+        this.conversations.push(...allConversations.slice(startIndex, endIndex));
+      }
+      
+      this.totalConversations = allConversations.length;
+      this.hasMoreConversations = endIndex < allConversations.length;
+    }
+  }
+
+  /**
+   * Load more conversations for virtual scrolling
+   */
+  async loadMoreConversations(): Promise<void> {
+    if (!this.hasMoreConversations || this.isLoading) {
+      return;
+    }
+
+    this.currentPage++;
+    await this.loadConversations(false, false);
   }
 
   async forceRefresh(): Promise<void> {
@@ -210,45 +298,189 @@ export class ConversationTreeProvider implements vscode.TreeDataProvider<Convers
 
   async getChildren(element?: ConversationTreeItem | MessageTreeItem): Promise<(ConversationTreeItem | MessageTreeItem)[]> {
     if (!element) {
-      // Return root level conversations
-      if (this.conversations.length === 0) {
-        // Show loading or empty state
-        return [];
+      // Return root level conversations with virtual scrolling
+      const items: (ConversationTreeItem | MessageTreeItem)[] = [];
+      
+      // Add conversation items
+      for (const conversation of this.conversations) {
+        // Check cache first
+        let conversationItem = this.conversationCache.get(conversation.id);
+        
+        if (!conversationItem) {
+          conversationItem = new ConversationTreeItem(
+            conversation,
+            this.expandedConversations.has(conversation.id) 
+              ? vscode.TreeItemCollapsibleState.Expanded 
+              : vscode.TreeItemCollapsibleState.Collapsed
+          );
+          this.conversationCache.set(conversation.id, conversationItem);
+        }
+        
+        items.push(conversationItem);
       }
-
-      return this.conversations.map(conversation => 
-        new ConversationTreeItem(
-          conversation,
-          this.expandedConversations.has(conversation.id) 
-            ? vscode.TreeItemCollapsibleState.Expanded 
-            : vscode.TreeItemCollapsibleState.Collapsed
-        )
-      );
+      
+      // Add "Load More" item if there are more conversations
+      if (this.hasMoreConversations && !this.isLoading) {
+        const loadMoreItem = new vscode.TreeItem('Load More...', vscode.TreeItemCollapsibleState.None);
+        loadMoreItem.iconPath = new vscode.ThemeIcon('refresh');
+        loadMoreItem.tooltip = `Load more conversations (${this.conversations.length}/${this.totalConversations})`;
+        loadMoreItem.command = {
+          command: 'cursorCompanion.loadMoreConversations',
+          title: 'Load More Conversations'
+        };
+        items.push(loadMoreItem as any);
+      }
+      
+      // Add loading indicator if loading
+      if (this.isLoading && this.conversations.length > 0) {
+        const loadingItem = new vscode.TreeItem('Loading...', vscode.TreeItemCollapsibleState.None);
+        loadingItem.iconPath = new vscode.ThemeIcon('loading~spin');
+        loadingItem.tooltip = 'Loading more conversations...';
+        items.push(loadingItem as any);
+      }
+      
+      return items;
     }
 
     if (element instanceof ConversationTreeItem) {
-      // Return messages for this conversation
-      try {
-        const messages = await this.dataStorage.getMessages(element.conversation.id);
-        return messages.map(message => new MessageTreeItem(message));
-      } catch (error) {
-        console.error(`Failed to load messages for conversation ${element.conversation.id}:`, error);
-        
-        // Return error item
-        const errorItem = new vscode.TreeItem('Failed to load messages', vscode.TreeItemCollapsibleState.None);
-        errorItem.iconPath = new vscode.ThemeIcon('error');
-        errorItem.tooltip = 'Click to retry loading messages';
-        errorItem.command = {
-          command: 'cursorCompanion.retryLoadMessages',
-          title: 'Retry Load Messages',
-          arguments: [element.conversation.id]
-        };
-        return [errorItem as any];
-      }
+      // Return messages for this conversation with lazy loading
+      return await this.getMessagesForConversation(element.conversation.id);
     }
 
     // Messages don't have children
     return [];
+  }
+
+  /**
+   * Get messages for a conversation with caching and lazy loading
+   */
+  private async getMessagesForConversation(conversationId: string): Promise<MessageTreeItem[]> {
+    // Check if already loading
+    if (this.loadingMessages.has(conversationId)) {
+      return [this.createLoadingMessageItem()];
+    }
+
+    // Check cache first
+    if (this.messageCache.has(conversationId)) {
+      return this.messageCache.get(conversationId)!;
+    }
+
+    // Start loading
+    this.loadingMessages.add(conversationId);
+
+    try {
+      // Check if we have a performance manager for lazy loading
+      const performanceManager = (this.dataStorage as any).performanceManager;
+      let messages: Message[];
+
+      if (performanceManager && typeof performanceManager.getMessagesLazy === 'function') {
+        // Use lazy loading
+        const result = await performanceManager.getMessagesLazy(conversationId, 0, 20);
+        messages = result.items;
+        
+        // If there are more messages, add a "Load More" item
+        if (result.hasMore) {
+          const messageItems = messages.map(message => new MessageTreeItem(message));
+          const loadMoreItem = this.createLoadMoreMessagesItem(conversationId, result.offset + result.limit);
+          messageItems.push(loadMoreItem);
+          
+          this.messageCache.set(conversationId, messageItems);
+          return messageItems;
+        }
+      } else {
+        // Fallback to regular loading
+        messages = await this.dataStorage.getMessages(conversationId);
+      }
+
+      const messageItems = messages.map(message => new MessageTreeItem(message));
+      this.messageCache.set(conversationId, messageItems);
+      
+      return messageItems;
+    } catch (error) {
+      console.error(`Failed to load messages for conversation ${conversationId}:`, error);
+      
+      // Return error item
+      return [this.createErrorMessageItem(conversationId)];
+    } finally {
+      this.loadingMessages.delete(conversationId);
+    }
+  }
+
+  /**
+   * Create loading message item
+   */
+  private createLoadingMessageItem(): MessageTreeItem {
+    const loadingItem = new vscode.TreeItem('Loading messages...', vscode.TreeItemCollapsibleState.None);
+    loadingItem.iconPath = new vscode.ThemeIcon('loading~spin');
+    loadingItem.tooltip = 'Loading messages...';
+    return loadingItem as any;
+  }
+
+  /**
+   * Create load more messages item
+   */
+  private createLoadMoreMessagesItem(conversationId: string, offset: number): MessageTreeItem {
+    const loadMoreItem = new vscode.TreeItem('Load More Messages...', vscode.TreeItemCollapsibleState.None);
+    loadMoreItem.iconPath = new vscode.ThemeIcon('refresh');
+    loadMoreItem.tooltip = 'Load more messages';
+    loadMoreItem.command = {
+      command: 'cursorCompanion.loadMoreMessages',
+      title: 'Load More Messages',
+      arguments: [conversationId, offset]
+    };
+    return loadMoreItem as any;
+  }
+
+  /**
+   * Create error message item
+   */
+  private createErrorMessageItem(conversationId: string): MessageTreeItem {
+    const errorItem = new vscode.TreeItem('Failed to load messages', vscode.TreeItemCollapsibleState.None);
+    errorItem.iconPath = new vscode.ThemeIcon('error');
+    errorItem.tooltip = 'Click to retry loading messages';
+    errorItem.command = {
+      command: 'cursorCompanion.retryLoadMessages',
+      title: 'Retry Load Messages',
+      arguments: [conversationId]
+    };
+    return errorItem as any;
+  }
+
+  /**
+   * Load more messages for a conversation
+   */
+  async loadMoreMessages(conversationId: string, offset: number): Promise<void> {
+    try {
+      const performanceManager = (this.dataStorage as any).performanceManager;
+      
+      if (performanceManager && typeof performanceManager.getMessagesLazy === 'function') {
+        const result = await performanceManager.getMessagesLazy(conversationId, offset, 20);
+        
+        // Get existing cached messages
+        const existingMessages = this.messageCache.get(conversationId) || [];
+        
+        // Remove the "Load More" item if it exists
+        const filteredMessages = existingMessages.filter(item => 
+          (item as any).command?.command !== 'cursorCompanion.loadMoreMessages'
+        );
+        
+        // Add new messages
+        const newMessageItems = result.items.map((message: Message) => new MessageTreeItem(message));
+        const updatedMessages = [...filteredMessages, ...newMessageItems];
+        
+        // Add new "Load More" item if there are more messages
+        if (result.hasMore) {
+          const loadMoreItem = this.createLoadMoreMessagesItem(conversationId, result.offset + result.limit);
+          updatedMessages.push(loadMoreItem);
+        }
+        
+        this.messageCache.set(conversationId, updatedMessages);
+        this.debouncedRefresh();
+      }
+    } catch (error) {
+      console.error(`Failed to load more messages for conversation ${conversationId}:`, error);
+      vscode.window.showErrorMessage('Failed to load more messages');
+    }
   }
 
   async expandConversation(conversationId: string): Promise<void> {
@@ -448,7 +680,7 @@ export class ConversationTreeProvider implements vscode.TreeDataProvider<Convers
         };
         
         await this.dataStorage.saveMessage(duplicateMessage);
-        duplicateConversation.messages.push(duplicateMessage.id);
+        duplicateConversation.messages.push(duplicateMessage);
       }
 
       // Update conversation with message IDs
@@ -511,5 +743,15 @@ export class ConversationTreeProvider implements vscode.TreeDataProvider<Convers
     if (this.loadingTimeout) {
       clearTimeout(this.loadingTimeout);
     }
+    
+    if (this.refreshDebounceTimer) {
+      clearTimeout(this.refreshDebounceTimer);
+    }
+    
+    // Clear caches
+    this.conversationCache.clear();
+    this.messageCache.clear();
+    this.loadingConversations.clear();
+    this.loadingMessages.clear();
   }
 }

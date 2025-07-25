@@ -12,11 +12,11 @@ import { FileSnapshot } from './fileSnapshot';
  */
 export class ValidationError extends Error {
   constructor(
-    message: string,
+    messageId: string,
     public field?: string,
     public value?: any
   ) {
-    super(message);
+    super(messageId);
     this.name = 'ValidationError';
   }
 }

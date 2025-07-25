@@ -78,7 +78,7 @@ export class SearchFilterProvider {
   }
 
   /**
-   * Perform search with debouncing
+   * Perform search with enhanced debouncing and cancellation
    */
   search(query: string, options: Partial<SearchFilterOptions> = {}): void {
     // Clear existing timer
@@ -86,10 +86,46 @@ export class SearchFilterProvider {
       clearTimeout(this.searchDebounceTimer);
     }
 
-    // Set new timer
+    // Cancel any ongoing search
+    this.cancelCurrentSearch();
+
+    // Set new timer with adaptive delay based on query length
+    const delay = this.calculateSearchDelay(query);
+    
     this.searchDebounceTimer = setTimeout(async () => {
       await this.performSearch(query, options);
-    }, this.searchDebounceDelay);
+    }, delay);
+  }
+
+  /**
+   * Calculate adaptive search delay based on query characteristics
+   */
+  private calculateSearchDelay(query: string): number {
+    if (!query.trim()) {
+      return 0; // No delay for empty queries
+    }
+    
+    if (query.length < 3) {
+      return this.searchDebounceDelay * 1.5; // Longer delay for short queries
+    }
+    
+    if (query.length > 20) {
+      return this.searchDebounceDelay * 0.5; // Shorter delay for long queries
+    }
+    
+    return this.searchDebounceDelay;
+  }
+
+  /**
+   * Cancel current search operation
+   */
+  private currentSearchController?: AbortController;
+  
+  private cancelCurrentSearch(): void {
+    if (this.currentSearchController) {
+      this.currentSearchController.abort();
+      this.currentSearchController = undefined;
+    }
   }
 
   /**
@@ -287,9 +323,13 @@ export class SearchFilterProvider {
   // Private methods
 
   /**
-   * Perform the actual search
+   * Perform the actual search with cancellation support and performance optimizations
    */
   private async performSearch(query: string, options: Partial<SearchFilterOptions>): Promise<SearchResult[]> {
+    // Create new abort controller for this search
+    this.currentSearchController = new AbortController();
+    const signal = this.currentSearchController.signal;
+
     try {
       if (!query.trim()) {
         return [];
@@ -301,77 +341,248 @@ export class SearchFilterProvider {
         query: query.trim()
       };
 
-      // Get all conversations
-      const conversations = await this.dataStorage.getConversations();
+      // Check if search was cancelled
+      if (signal.aborted) {
+        return [];
+      }
+
+      // Get conversations with potential performance optimization
+      const conversations = await this.getConversationsForSearch(searchOptions, signal);
+      
+      if (signal.aborted) {
+        return [];
+      }
+
       const results: SearchResult[] = [];
+      const batchSize = 10; // Process conversations in batches to avoid blocking
 
-      // Search in conversations
-      for (const conversation of conversations) {
-        // Apply status filter
-        if (searchOptions.status && searchOptions.status !== 'all' && conversation.status !== searchOptions.status) {
-          continue;
+      // Process conversations in batches to avoid blocking the UI
+      for (let i = 0; i < conversations.length; i += batchSize) {
+        if (signal.aborted) {
+          return [];
         }
 
-        // Apply date range filter
-        if (searchOptions.dateRange) {
-          const conversationDate = new Date(conversation.timestamp);
-          if (conversationDate < searchOptions.dateRange.start || conversationDate > searchOptions.dateRange.end) {
-            continue;
-          }
-        }
+        const batch = conversations.slice(i, i + batchSize);
+        const batchResults = await this.searchConversationBatch(batch, query, searchOptions, signal);
+        results.push(...batchResults);
 
-        // Apply tag filter
-        if (searchOptions.tags && searchOptions.tags.length > 0) {
-          const conversationTags = conversation.metadata?.tags || [];
-          if (!searchOptions.tags.some(tag => conversationTags.includes(tag))) {
-            continue;
-          }
+        // Yield control to prevent blocking
+        if (i + batchSize < conversations.length) {
+          await new Promise(resolve => setTimeout(resolve, 1));
         }
+      }
 
-        // Search in conversation title
-        const titleMatch = this.searchInText(conversation.title, query, searchOptions.caseSensitive);
-        if (titleMatch) {
-          results.push({
-            conversation,
-            matchType: 'title',
-            matchText: conversation.title,
-            highlightedText: titleMatch.highlighted,
-            score: titleMatch.score
-          });
-        }
+      if (signal.aborted) {
+        return [];
+      }
 
-        // Search in conversation tags
-        if (conversation.metadata?.tags) {
-          for (const tag of conversation.metadata.tags) {
-            const tagMatch = this.searchInText(tag, query, searchOptions.caseSensitive);
-            if (tagMatch) {
-              results.push({
-                conversation,
-                matchType: 'tag',
-                matchText: tag,
-                highlightedText: tagMatch.highlighted,
-                score: tagMatch.score * 0.8 // Lower score for tag matches
-              });
-            }
-          }
-        }
+      // Sort results by score
+      results.sort((a, b) => b.score - a.score);
 
-        // Search in messages
+      // Limit results to prevent UI overload
+      const maxResults = 100;
+      const limitedResults = results.slice(0, maxResults);
+
+      // Add to search history
+      this.addToSearchHistory(query, limitedResults.length);
+
+      // Notify callbacks
+      this.searchCallbacks.forEach(callback => {
         try {
-          const messages = await this.dataStorage.getMessages(conversation.id);
-          
-          for (const message of messages) {
-            // Apply sender filter
-            if (searchOptions.sender && searchOptions.sender !== 'all' && message.sender !== searchOptions.sender) {
-              continue;
-            }
+          callback(limitedResults);
+        } catch (error) {
+          console.error('Error in search callback:', error);
+        }
+      });
 
-            // Apply code changes filter
-            if (searchOptions.hasCodeChanges && (!message.codeChanges || message.codeChanges.length === 0)) {
-              continue;
-            }
+      return limitedResults;
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Search was cancelled, return empty results
+        return [];
+      }
+      
+      console.error('Search failed:', error);
+      vscode.window.showErrorMessage('Search failed');
+      return [];
+    } finally {
+      this.currentSearchController = undefined;
+    }
+  }
 
-            // Search in message content
+  /**
+   * Get conversations for search with potential performance optimization
+   */
+  private async getConversationsForSearch(
+    searchOptions: SearchFilterOptions, 
+    signal: AbortSignal
+  ): Promise<Conversation[]> {
+    // Check if we can use performance manager for optimized loading
+    const performanceManager = (this.dataStorage as any).performanceManager;
+    
+    if (performanceManager && typeof performanceManager.getConversationsPaginated === 'function') {
+      // Use paginated loading for better performance
+      const conversations: Conversation[] = [];
+      let page = 0;
+      let hasMore = true;
+      
+      while (hasMore && !signal.aborted) {
+        const result = await performanceManager.getConversationsPaginated(page, 50, {
+          status: searchOptions.status,
+          dateRange: searchOptions.dateRange ? {
+            start: searchOptions.dateRange.start.getTime(),
+            end: searchOptions.dateRange.end.getTime()
+          } : undefined,
+          tags: searchOptions.tags
+        });
+        
+        conversations.push(...result.items);
+        hasMore = result.hasMore;
+        page++;
+        
+        // Limit total conversations to prevent memory issues
+        if (conversations.length > 1000) {
+          break;
+        }
+      }
+      
+      return conversations;
+    } else {
+      // Fallback to regular loading
+      return await this.dataStorage.getConversations({
+        status: searchOptions.status,
+        dateRange: searchOptions.dateRange ? {
+          start: searchOptions.dateRange.start.getTime(),
+          end: searchOptions.dateRange.end.getTime()
+        } : undefined,
+        tags: searchOptions.tags
+      });
+    }
+  }
+
+  /**
+   * Search a batch of conversations
+   */
+  private async searchConversationBatch(
+    conversations: Conversation[],
+    query: string,
+    searchOptions: SearchFilterOptions,
+    signal: AbortSignal
+  ): Promise<SearchResult[]> {
+    const results: SearchResult[] = [];
+
+    for (const conversation of conversations) {
+      if (signal.aborted) {
+        break;
+      }
+
+      // Apply filters
+      if (!this.conversationMatchesFilters(conversation, searchOptions)) {
+        continue;
+      }
+
+      // Search in conversation title
+      const titleMatch = this.searchInText(conversation.title, query, searchOptions.caseSensitive);
+      if (titleMatch) {
+        results.push({
+          conversation,
+          matchType: 'title',
+          matchText: conversation.title,
+          highlightedText: titleMatch.highlighted,
+          score: titleMatch.score
+        });
+      }
+
+      // Search in conversation tags
+      if (conversation.metadata?.tags) {
+        for (const tag of conversation.metadata.tags) {
+          const tagMatch = this.searchInText(tag, query, searchOptions.caseSensitive);
+          if (tagMatch) {
+            results.push({
+              conversation,
+              matchType: 'tag',
+              matchText: tag,
+              highlightedText: tagMatch.highlighted,
+              score: tagMatch.score * 0.8 // Lower score for tag matches
+            });
+          }
+        }
+      }
+
+      // Search in messages (with lazy loading if available)
+      try {
+        const messageResults = await this.searchMessagesInConversation(
+          conversation, 
+          query, 
+          searchOptions, 
+          signal
+        );
+        results.push(...messageResults);
+      } catch (error) {
+        console.warn(`Failed to search messages in conversation ${conversation.id}:`, error);
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Check if conversation matches filters
+   */
+  private conversationMatchesFilters(conversation: Conversation, searchOptions: SearchFilterOptions): boolean {
+    // Apply status filter
+    if (searchOptions.status && searchOptions.status !== 'all' && conversation.status !== searchOptions.status) {
+      return false;
+    }
+
+    // Apply date range filter
+    if (searchOptions.dateRange) {
+      const conversationDate = new Date(conversation.timestamp);
+      if (conversationDate < searchOptions.dateRange.start || conversationDate > searchOptions.dateRange.end) {
+        return false;
+      }
+    }
+
+    // Apply tag filter
+    if (searchOptions.tags && searchOptions.tags.length > 0) {
+      const conversationTags = conversation.metadata?.tags || [];
+      if (!searchOptions.tags.some(tag => conversationTags.includes(tag))) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Search messages in a conversation with performance optimization
+   */
+  private async searchMessagesInConversation(
+    conversation: Conversation,
+    query: string,
+    searchOptions: SearchFilterOptions,
+    signal: AbortSignal
+  ): Promise<SearchResult[]> {
+    const results: SearchResult[] = [];
+    
+    // Check if we can use performance manager for lazy loading
+    const performanceManager = (this.dataStorage as any).performanceManager;
+    
+    if (performanceManager && typeof performanceManager.getMessagesLazy === 'function') {
+      // Use lazy loading to avoid loading all messages at once
+      let offset = 0;
+      const limit = 20;
+      let hasMore = true;
+      
+      while (hasMore && !signal.aborted) {
+        const result = await performanceManager.getMessagesLazy(conversation.id, offset, limit);
+        
+        for (const message of result.items) {
+          if (signal.aborted) {
+            break;
+          }
+
+          if (this.messageMatchesFilters(message, searchOptions)) {
             const contentMatch = this.searchInText(message.content, query, searchOptions.caseSensitive);
             if (contentMatch) {
               results.push({
@@ -384,32 +595,59 @@ export class SearchFilterProvider {
               });
             }
           }
-        } catch (error) {
-          console.warn(`Failed to search messages in conversation ${conversation.id}:`, error);
+        }
+        
+        hasMore = result.hasMore;
+        offset += limit;
+        
+        // Limit search depth to prevent excessive loading
+        if (offset > 200) {
+          break;
         }
       }
-
-      // Sort results by score
-      results.sort((a, b) => b.score - a.score);
-
-      // Add to search history
-      this.addToSearchHistory(query, results.length);
-
-      // Notify callbacks
-      this.searchCallbacks.forEach(callback => {
-        try {
-          callback(results);
-        } catch (error) {
-          console.error('Error in search callback:', error);
+    } else {
+      // Fallback to regular message loading
+      const messages = await this.dataStorage.getMessages(conversation.id);
+      
+      for (const message of messages) {
+        if (signal.aborted) {
+          break;
         }
-      });
 
-      return results;
-    } catch (error) {
-      console.error('Search failed:', error);
-      vscode.window.showErrorMessage('Search failed');
-      return [];
+        if (this.messageMatchesFilters(message, searchOptions)) {
+          const contentMatch = this.searchInText(message.content, query, searchOptions.caseSensitive);
+          if (contentMatch) {
+            results.push({
+              conversation,
+              message,
+              matchType: 'content',
+              matchText: message.content,
+              highlightedText: contentMatch.highlighted,
+              score: contentMatch.score * 0.9
+            });
+          }
+        }
+      }
     }
+    
+    return results;
+  }
+
+  /**
+   * Check if message matches filters
+   */
+  private messageMatchesFilters(message: Message, searchOptions: SearchFilterOptions): boolean {
+    // Apply sender filter
+    if (searchOptions.sender && searchOptions.sender !== 'all' && message.sender !== searchOptions.sender) {
+      return false;
+    }
+
+    // Apply code changes filter
+    if (searchOptions.hasCodeChanges && (!message.codeChanges || message.codeChanges.length === 0)) {
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -830,6 +1068,9 @@ export class SearchFilterProvider {
     if (this.searchDebounceTimer) {
       clearTimeout(this.searchDebounceTimer);
     }
+    
+    // Cancel any ongoing search
+    this.cancelCurrentSearch();
     
     this.saveSearchHistory();
     this.searchCallbacks = [];

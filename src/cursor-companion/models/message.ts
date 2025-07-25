@@ -39,6 +39,9 @@ export interface Message {
     
     /** Custom tags */
     tags?: string[];
+
+    /** Confidence score (0-1) */
+    confidence?: number;
   };
 }
 

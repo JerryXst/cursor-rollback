@@ -3,13 +3,13 @@
  * Tests the core functionality without complex mocking
  */
 
-import { describe, it } from 'mocha';
+// Using global mocha functions
 import * as assert from 'assert';
 import { SnapshotManager } from '../cursor-companion/services/snapshotManager';
 
-describe('SnapshotManager Integration', () => {
-  describe('basic functionality', () => {
-    it('should create a SnapshotManager instance', () => {
+suite('SnapshotManager Integration', () => {
+  suite('basic functionality', () => {
+    test('should create a SnapshotManager instance', () => {
       const mockContext = {
         globalStorageUri: {
           fsPath: '/test/storage'
@@ -25,7 +25,7 @@ describe('SnapshotManager Integration', () => {
       assert.ok(snapshotManager);
     });
 
-    it('should return statistics', async () => {
+    test('should return statistics', async () => {
       const mockContext = {
         globalStorageUri: {
           fsPath: '/test/storage'

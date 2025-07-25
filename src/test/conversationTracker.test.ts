@@ -61,7 +61,7 @@ suite('ConversationTracker Tests', () => {
     await tracker.startTracking();
     
     assert.strictEqual(tracker.isTracking(), true);
-    assert.strictEqual(vscode.workspace.createFileSystemWatcher.called, true);
+    assert.strictEqual((vscode.workspace.createFileSystemWatcher as sinon.SinonStub).called, true);
   });
   
   test('Should stop tracking and clean up resources', async () => {

@@ -402,7 +402,7 @@ export class ConversationTracker implements IConversationTracker {
       if (!message.metadata) {
         message.metadata = {};
       }
-      message.metadata.aiConfidence = detectionResult.confidence;
+      message.metadata.confidence = detectionResult.confidence;
 
       // Update active message ID
       this.activeMessageId = message.id;

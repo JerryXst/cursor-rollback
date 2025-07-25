@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { describe, it } from 'mocha';
+// Using global mocha functions
 import { 
   calculateStrongChecksum,
   verifySnapshotIntegrity,
@@ -14,9 +14,9 @@ import { Conversation } from '../cursor-companion/models/conversation';
 import { Message } from '../cursor-companion/models/message';
 import { validateConversation } from '../cursor-companion/models/validation';
 
-describe('Data Integrity Tests', () => {
-  describe('calculateStrongChecksum', () => {
-    it('should generate consistent checksums for the same content', () => {
+suite('Data Integrity Tests', () => {
+  suite('calculateStrongChecksum', () => {
+    test('should generate consistent checksums for the same content', () => {
       const content = 'Test content for checksum';
       const checksum1 = calculateStrongChecksum(content);
       const checksum2 = calculateStrongChecksum(content);
@@ -24,7 +24,7 @@ describe('Data Integrity Tests', () => {
       assert.strictEqual(checksum1, checksum2);
     });
     
-    it('should generate different checksums for different content', () => {
+    test('should generate different checksums for different content', () => {
       const content1 = 'Test content 1';
       const content2 = 'Test content 2';
       
@@ -35,8 +35,8 @@ describe('Data Integrity Tests', () => {
     });
   });
   
-  describe('verifySnapshotIntegrity', () => {
-    it('should validate a snapshot with correct checksum', () => {
+  suite('verifySnapshotIntegrity', () => {
+    test('should validate a snapshot with correct checksum', () => {
       const content = 'Test file content';
       const checksum = calculateStrongChecksum(content);
       
@@ -52,7 +52,7 @@ describe('Data Integrity Tests', () => {
       assert.strictEqual(result.errors.length, 0);
     });
     
-    it('should detect a snapshot with incorrect checksum', () => {
+    test('should detect a snapshot with incorrect checksum', () => {
       const content = 'Test file content';
       const wrongChecksum = 'invalid-checksum';
       
@@ -69,7 +69,7 @@ describe('Data Integrity Tests', () => {
       assert.strictEqual(result.errors[0].field, 'checksum');
     });
     
-    it('should handle empty content', () => {
+    test('should handle empty content', () => {
       const snapshot: FileSnapshot = {
         filePath: 'test/empty.txt',
         content: '',
@@ -82,8 +82,8 @@ describe('Data Integrity Tests', () => {
     });
   });
   
-  describe('detectConversationCorruption', () => {
-    it('should detect no corruption in valid conversation', () => {
+  suite('detectConversationCorruption', () => {
+    test('should detect no corruption in valid conversation', () => {
       const conversation: Conversation = {
         id: 'test-conv-1',
         title: 'Test Conversation',
@@ -97,7 +97,7 @@ describe('Data Integrity Tests', () => {
       assert.strictEqual(result.corruptedFields.length, 0);
     });
     
-    it('should detect corruption in conversation with missing fields', () => {
+    test('should detect corruption in conversation with missing fields', () => {
       const conversation = {
         id: 'test-conv-2',
         // Missing title
@@ -110,7 +110,7 @@ describe('Data Integrity Tests', () => {
       assert.ok(result.corruptedFields.includes('title'));
     });
     
-    it('should detect corruption in conversation with invalid fields', () => {
+    test('should detect corruption in conversation with invalid fields', () => {
       const conversation = {
         id: 'test-conv-3',
         title: 'Test Conversation',
@@ -126,8 +126,8 @@ describe('Data Integrity Tests', () => {
     });
   });
   
-  describe('repairConversation', () => {
-    it('should repair conversation with missing fields', () => {
+  suite('repairConversation', () => {
+    test('should repair conversation with missing fields', () => {
       const conversation = {
         id: 'test-conv-4',
         // Missing title
@@ -149,7 +149,7 @@ describe('Data Integrity Tests', () => {
       assert.strictEqual(conversation.status, 'active');
     });
     
-    it('should not repair ID field', () => {
+    test('should not repair ID field', () => {
       const conversation = {
         // Missing ID
         title: 'Test Conversation',
@@ -165,8 +165,8 @@ describe('Data Integrity Tests', () => {
     });
   });
   
-  describe('verifyDataConsistency', () => {
-    it('should validate consistent conversation data', () => {
+  suite('verifyDataConsistency', () => {
+    test('should validate consistent conversation data', () => {
       const conversation: Conversation = {
         id: 'test-conv-5',
         title: 'Test Conversation',
@@ -199,7 +199,7 @@ describe('Data Integrity Tests', () => {
       assert.strictEqual(result.errors.length, 0);
     });
     
-    it('should detect inconsistent conversation IDs', () => {
+    test('should detect inconsistent conversation IDs', () => {
       const conversation: Conversation = {
         id: 'test-conv-6',
         title: 'Test Conversation',
@@ -223,7 +223,7 @@ describe('Data Integrity Tests', () => {
       assert.strictEqual(result.errors.length, 1);
     });
     
-    it('should detect timestamp inconsistencies', () => {
+    test('should detect timestamp inconsistencies', () => {
       const now = Date.now();
       
       const conversation: Conversation = {
@@ -259,8 +259,8 @@ describe('Data Integrity Tests', () => {
     });
   });
   
-  describe('safeParseAndValidate', () => {
-    it('should parse and validate valid JSON', () => {
+  suite('safeParseAndValidate', () => {
+    test('should parse and validate valid JSON', () => {
       const json = JSON.stringify({
         id: 'test-conv-8',
         title: 'Test Conversation',
@@ -280,7 +280,7 @@ describe('Data Integrity Tests', () => {
       assert.strictEqual(result.data.id, 'test-conv-8');
     });
     
-    it('should handle invalid JSON', () => {
+    test('should handle invalid JSON', () => {
       const json = '{ invalid json: }';
       
       const result = safeParseAndValidate<Conversation>(
@@ -293,7 +293,7 @@ describe('Data Integrity Tests', () => {
       assert.strictEqual(result.data.id, '');
     });
     
-    it('should handle valid JSON with invalid data', () => {
+    test('should handle valid JSON with invalid data', () => {
       const json = JSON.stringify({
         id: 'test-conv-9',
         // Missing title

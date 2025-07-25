@@ -8,7 +8,7 @@ suite('Serialization Tests', () => {
       id: 'test-conv-1',
       title: 'Test Conversation',
       timestamp: Date.now(),
-      messages: ['msg1', 'msg2'],
+      messages: [],
       status: 'active',
       metadata: {
         messageCount: 2,

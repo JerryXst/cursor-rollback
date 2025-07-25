@@ -3,7 +3,7 @@
  * Validates message formatting, display logic, and user interactions
  */
 
-import { describe, it, beforeEach, afterEach } from 'mocha';
+// Using global mocha functions
 import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
@@ -12,14 +12,14 @@ import { ConversationExpandManager } from '../cursor-companion/ui/conversationEx
 import { LocalFileStorage } from '../cursor-companion/services/localFileStorage';
 import { Conversation, Message } from '../cursor-companion/models';
 
-describe('MessageDisplayProvider', () => {
+suite('MessageDisplayProvider', () => {
   let messageDisplayProvider: MessageDisplayProvider;
   let mockContext: vscode.ExtensionContext;
   let mockDataStorage: LocalFileStorage;
   let mockExpandManager: ConversationExpandManager;
   let sandbox: sinon.SinonSandbox;
 
-  beforeEach(() => {
+  setup(() => {
     sandbox = sinon.createSandbox();
 
     // Create mock context
@@ -48,20 +48,12 @@ describe('MessageDisplayProvider', () => {
     messageDisplayProvider = new MessageDisplayProvider(mockContext, mockDataStorage, mockExpandManager);
   });
 
-  afterEach(() => {
+  teardown(() => {
     sandbox.restore();
   });
 
-  describe('createMessageTreeItems', () => {
-    it('should create tree items for messages in a conversation', async () => {
-      const conversation: Conversation = {
-        id: 'conv-1',
-        title: 'Test Conversation',
-        timestamp: Date.now(),
-        messages: ['msg-1', 'msg-2'],
-        status: 'active'
-      };
-
+  suite('createMessageTreeItems', () => {
+    test('should create tree items for messages in a conversation', async () => {
       const messages: Message[] = [
         {
           id: 'msg-1',
@@ -89,6 +81,14 @@ describe('MessageDisplayProvider', () => {
           snapshot: []
         }
       ];
+
+      const conversation: Conversation = {
+        id: 'conv-1',
+        title: 'Test Conversation',
+        timestamp: Date.now(),
+        messages: messages,
+        status: 'active'
+      };
 
       const formattedMessages = [
         {
@@ -123,7 +123,7 @@ describe('MessageDisplayProvider', () => {
       assert.strictEqual(treeItems[2].label, 'test.ts'); // Code change item
     });
 
-    it('should handle empty conversation', async () => {
+    test('should handle empty conversation', async () => {
       const conversation: Conversation = {
         id: 'conv-empty',
         title: 'Empty Conversation',
@@ -140,12 +140,20 @@ describe('MessageDisplayProvider', () => {
       assert.strictEqual(treeItems.length, 0);
     });
 
-    it('should handle errors gracefully', async () => {
+    test('should handle errors gracefully', async () => {
       const conversation: Conversation = {
         id: 'conv-error',
         title: 'Error Conversation',
         timestamp: Date.now(),
-        messages: ['msg-1'],
+        messages: [{
+          id: 'msg-1',
+          conversationId: 'conv-error',
+          content: 'Test message',
+          sender: 'user',
+          timestamp: Date.now(),
+          codeChanges: [],
+          snapshot: []
+        }],
         status: 'active'
       };
 
@@ -157,8 +165,8 @@ describe('MessageDisplayProvider', () => {
     });
   });
 
-  describe('getMessageStatistics', () => {
-    it('should return correct message statistics', async () => {
+  suite('getMessageStatistics', () => {
+    test('should return correct message statistics', async () => {
       const messages: Message[] = [
         {
           id: 'msg-1',
@@ -199,7 +207,7 @@ describe('MessageDisplayProvider', () => {
       assert.strictEqual(stats.messagesWithCodeChanges, 1);
     });
 
-    it('should handle empty message list', async () => {
+    test('should handle empty message list', async () => {
       (mockDataStorage.getMessages as sinon.SinonStub).resolves([]);
 
       const stats = await messageDisplayProvider.getMessageStatistics('conv-empty');
@@ -211,8 +219,8 @@ describe('MessageDisplayProvider', () => {
     });
   });
 
-  describe('searchMessages', () => {
-    it('should find messages containing search terms', async () => {
+  suite('searchMessages', () => {
+    test('should find messages containing search terms', async () => {
       const messages: Message[] = [
         {
           id: 'msg-1',
@@ -250,7 +258,7 @@ describe('MessageDisplayProvider', () => {
       assert.strictEqual(results.length, 2); // Should find msg-1 and msg-3
     });
 
-    it('should return empty array when no matches found', async () => {
+    test('should return empty array when no matches found', async () => {
       const messages: Message[] = [
         {
           id: 'msg-1',
@@ -271,16 +279,8 @@ describe('MessageDisplayProvider', () => {
     });
   });
 
-  describe('exportConversationMessages', () => {
-    it('should export conversation messages to markdown format', async () => {
-      const conversation: Conversation = {
-        id: 'conv-1',
-        title: 'Test Conversation',
-        timestamp: Date.now(),
-        messages: ['msg-1', 'msg-2'],
-        status: 'active'
-      };
-
+  suite('exportConversationMessages', () => {
+    test('should export conversation messages to markdown format', async () => {
       const messages: Message[] = [
         {
           id: 'msg-1',
@@ -309,6 +309,14 @@ describe('MessageDisplayProvider', () => {
         }
       ];
 
+      const conversation: Conversation = {
+        id: 'conv-1',
+        title: 'Test Conversation',
+        timestamp: Date.now(),
+        messages: messages,
+        status: 'active'
+      };
+
       (mockDataStorage.getConversation as sinon.SinonStub).resolves(conversation);
       (mockDataStorage.getMessages as sinon.SinonStub).resolves(messages);
 
@@ -323,7 +331,7 @@ describe('MessageDisplayProvider', () => {
       assert.ok(exported.includes('- modify: test.ts'));
     });
 
-    it('should throw error when conversation not found', async () => {
+    test('should throw error when conversation not found', async () => {
       (mockDataStorage.getConversation as sinon.SinonStub).resolves(null);
 
       try {
@@ -336,8 +344,8 @@ describe('MessageDisplayProvider', () => {
     });
   });
 
-  describe('utility methods', () => {
-    it('should create appropriate tree items for different states', () => {
+  suite('utility methods', () => {
+    test('should create appropriate tree items for different states', () => {
       const emptyItem = messageDisplayProvider.createEmptyStateItem('No messages found');
       assert.strictEqual(emptyItem.label, 'No messages found');
       assert.strictEqual(emptyItem.contextValue, 'emptyState');
@@ -351,7 +359,7 @@ describe('MessageDisplayProvider', () => {
       assert.strictEqual(errorItem.contextValue, 'errorState');
     });
 
-    it('should update display options correctly', () => {
+    test('should update display options correctly', () => {
       const initialOptions = messageDisplayProvider.getDisplayOptions();
       assert.strictEqual(initialOptions.showTimestamp, true);
       assert.strictEqual(initialOptions.maxContentLength, 100);

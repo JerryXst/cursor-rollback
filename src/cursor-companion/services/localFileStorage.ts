@@ -347,14 +347,13 @@ export class LocalFileStorage implements IDataStorage {
       const messages: Message[] = [];
       
       // Load each message by ID
-      for (const messageId of conversation.messages) {
+      for (const message of conversation.messages) {
         try {
-          const message = await this.getMessage(messageId);
           if (message && this.matchesMessageFilter(message, filter)) {
             messages.push(message);
           }
         } catch (error) {
-          console.warn(`Failed to load message ${messageId}:`, error);
+          console.warn(`Failed to load message ${message.conversationId}:`, error);
         }
       }
       
@@ -899,9 +898,10 @@ export class LocalFileStorage implements IDataStorage {
       }
       
       // Delete each message
-      for (const messageId of conversation.messages) {
+      for (const message of conversation.messages) {
+        const messageId = message.id;
         try {
-          const messagePath = path.join(this.messagesDir, `${messageId}.json`);
+          const messagePath = path.join(this.messagesDir, `${message.id}.json`);
           await vscode.workspace.fs.delete(vscode.Uri.file(messagePath));
           
           // Clear from cache
@@ -930,7 +930,8 @@ export class LocalFileStorage implements IDataStorage {
       }
       
       // Get all messages for this conversation
-      for (const messageId of conversation.messages) {
+      for (const message of conversation.messages) {
+        const messageId = message.id;
         try {
           // Get snapshot for this message
           const snapshot = await this.getSnapshot(messageId);
@@ -1471,12 +1472,12 @@ export class LocalFileStorage implements IDataStorage {
       }
       
       // Check if message is already in conversation
-      if (conversation.messages.includes(message.id)) {
+      if (conversation.messages.includes(message)) {
         return;
       }
       
       // Add message to conversation
-      conversation.messages.push(message.id);
+      conversation.messages.push(message);
       
       // Update metadata
       if (!conversation.metadata) {

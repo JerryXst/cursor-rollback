@@ -3,7 +3,7 @@
  * Validates file state snapshot creation, incremental snapshots, and deduplication mechanisms
  */
 
-import { describe, it, beforeEach, afterEach } from 'mocha';
+// Using global mocha functions
 import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
@@ -12,13 +12,13 @@ import { LocalFileStorage } from '../cursor-companion/services/localFileStorage'
 import { SnapshotOptions } from '../cursor-companion/models/fileSnapshot';
 import { SnapshotError } from '../cursor-companion/models/errors';
 
-describe('SnapshotManager', () => {
+suite('SnapshotManager', () => {
   let snapshotManager: SnapshotManager;
   let mockContext: vscode.ExtensionContext;
   let mockDataStorage: LocalFileStorage;
   let sandbox: sinon.SinonSandbox;
 
-  beforeEach(() => {
+  setup(() => {
     sandbox = sinon.createSandbox();
 
     // Create mock context
@@ -38,12 +38,12 @@ describe('SnapshotManager', () => {
     snapshotManager = new SnapshotManager(mockContext, mockDataStorage);
   });
 
-  afterEach(() => {
+  teardown(() => {
     sandbox.restore();
   });
 
-  describe('initialization', () => {
-    it('should initialize successfully', async () => {
+  suite('initialization', () => {
+    test('should initialize successfully', async () => {
       // Mock vscode.workspace.fs methods
       const mockStat = sandbox.stub(vscode.workspace.fs, 'stat').rejects(new Error('Directory not found'));
       const mockCreateDirectory = sandbox.stub(vscode.workspace.fs, 'createDirectory').resolves();
@@ -56,7 +56,7 @@ describe('SnapshotManager', () => {
       assert.ok(mockCreateDirectory.calledWith(sinon.match({ fsPath: '/test/storage/cursor-companion/snapshots' })));
     });
 
-    it('should throw SnapshotError if initialization fails', async () => {
+    test('should throw SnapshotError if initialization fails', async () => {
       const mockStat = sandbox.stub(vscode.workspace.fs, 'stat').rejects(new Error('Permission denied'));
       const mockCreateDirectory = sandbox.stub(vscode.workspace.fs, 'createDirectory').rejects(new Error('Permission denied'));
 
@@ -69,8 +69,8 @@ describe('SnapshotManager', () => {
     });
   });
 
-  describe('createSnapshot', () => {
-    beforeEach(async () => {
+  suite('createSnapshot', () => {
+    setup(async () => {
       // Initialize the snapshot manager
       const mockStat = sandbox.stub(vscode.workspace.fs, 'stat').rejects(new Error('Directory not found'));
       const mockCreateDirectory = sandbox.stub(vscode.workspace.fs, 'createDirectory').resolves();
@@ -83,7 +83,7 @@ describe('SnapshotManager', () => {
       sandbox = sinon.createSandbox();
     });
 
-    it('should create a basic snapshot', async () => {
+    test('should create a basic snapshot', async () => {
       const messageId = 'test-message-123';
       
       // Mock workspace folders
@@ -111,7 +111,7 @@ describe('SnapshotManager', () => {
       assert.ok(mockSaveSnapshot.calledOnce);
     });
 
-    it('should throw SnapshotError if no workspace folder is found', async () => {
+    test('should throw SnapshotError if no workspace folder is found', async () => {
       sandbox.stub(vscode.workspace, 'workspaceFolders').value(undefined);
 
       try {
@@ -124,8 +124,8 @@ describe('SnapshotManager', () => {
     });
   });
 
-  describe('restoreFromSnapshot', () => {
-    beforeEach(async () => {
+  suite('restoreFromSnapshot', () => {
+    setup(async () => {
       // Initialize the snapshot manager
       const mockStat = sandbox.stub(vscode.workspace.fs, 'stat').rejects(new Error('Directory not found'));
       const mockCreateDirectory = sandbox.stub(vscode.workspace.fs, 'createDirectory').resolves();
@@ -138,7 +138,7 @@ describe('SnapshotManager', () => {
       sandbox = sinon.createSandbox();
     });
 
-    it('should throw SnapshotError if snapshot is not found', async () => {
+    test('should throw SnapshotError if snapshot is not found', async () => {
       const snapshotId = 'non-existent-snapshot';
       const mockGetSnapshot = sandbox.stub(mockDataStorage, 'getSnapshot').resolves(null);
 
@@ -152,8 +152,8 @@ describe('SnapshotManager', () => {
     });
   });
 
-  describe('compareSnapshots', () => {
-    beforeEach(async () => {
+  suite('compareSnapshots', () => {
+    setup(async () => {
       // Initialize the snapshot manager
       const mockStat = sandbox.stub(vscode.workspace.fs, 'stat').rejects(new Error('Directory not found'));
       const mockCreateDirectory = sandbox.stub(vscode.workspace.fs, 'createDirectory').resolves();
@@ -166,7 +166,7 @@ describe('SnapshotManager', () => {
       sandbox = sinon.createSandbox();
     });
 
-    it('should throw SnapshotError if either snapshot is not found', async () => {
+    test('should throw SnapshotError if either snapshot is not found', async () => {
       const mockGetSnapshot = sandbox.stub(mockDataStorage, 'getSnapshot')
         .onFirstCall().resolves(null)
         .onSecondCall().resolves({} as any);
@@ -180,8 +180,8 @@ describe('SnapshotManager', () => {
     });
   });
 
-  describe('getSnapshotStats', () => {
-    beforeEach(async () => {
+  suite('getSnapshotStats', () => {
+    setup(async () => {
       // Initialize the snapshot manager
       const mockStat = sandbox.stub(vscode.workspace.fs, 'stat').rejects(new Error('Directory not found'));
       const mockCreateDirectory = sandbox.stub(vscode.workspace.fs, 'createDirectory').resolves();
@@ -194,7 +194,7 @@ describe('SnapshotManager', () => {
       sandbox = sinon.createSandbox();
     });
 
-    it('should throw SnapshotError if snapshot is not found', async () => {
+    test('should throw SnapshotError if snapshot is not found', async () => {
       const mockGetSnapshot = sandbox.stub(mockDataStorage, 'getSnapshot').resolves(null);
 
       try {
@@ -206,8 +206,8 @@ describe('SnapshotManager', () => {
     });
   });
 
-  describe('getStats', () => {
-    it('should return snapshot manager statistics', async () => {
+  suite('getStats', () => {
+    test('should return snapshot manager statistics', async () => {
       const stats = await snapshotManager.getStats();
 
       assert.ok(typeof stats.totalSnapshots === 'number');

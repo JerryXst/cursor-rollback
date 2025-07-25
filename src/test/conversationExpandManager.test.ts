@@ -3,7 +3,7 @@
  * Validates conversation expansion state management and message formatting
  */
 
-import { describe, it, beforeEach, afterEach } from 'mocha';
+// Using global mocha functions
 import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
@@ -11,13 +11,13 @@ import { ConversationExpandManager } from '../cursor-companion/ui/conversationEx
 import { LocalFileStorage } from '../cursor-companion/services/localFileStorage';
 import { Message } from '../cursor-companion/models';
 
-describe('ConversationExpandManager', () => {
+suite('ConversationExpandManager', () => {
   let expandManager: ConversationExpandManager;
   let mockContext: vscode.ExtensionContext;
   let mockDataStorage: LocalFileStorage;
   let sandbox: sinon.SinonSandbox;
 
-  beforeEach(() => {
+  setup(() => {
     sandbox = sinon.createSandbox();
 
     // Create mock context
@@ -37,13 +37,13 @@ describe('ConversationExpandManager', () => {
     expandManager = new ConversationExpandManager(mockContext, mockDataStorage);
   });
 
-  afterEach(() => {
+  teardown(() => {
     expandManager.dispose();
     sandbox.restore();
   });
 
-  describe('conversation expansion', () => {
-    it('should toggle conversation expansion state', () => {
+  suite('conversation expansion', () => {
+    test('should toggle conversation expansion state', () => {
       const conversationId = 'conv-1';
 
       // Initially not expanded
@@ -60,7 +60,7 @@ describe('ConversationExpandManager', () => {
       assert.strictEqual(expandManager.isConversationExpanded(conversationId), false);
     });
 
-    it('should handle multiple conversations independently', () => {
+    test('should handle multiple conversations independently', () => {
       const conv1 = 'conv-1';
       const conv2 = 'conv-2';
 
@@ -81,8 +81,8 @@ describe('ConversationExpandManager', () => {
     });
   });
 
-  describe('message expansion', () => {
-    it('should toggle message expansion state', () => {
+  suite('message expansion', () => {
+    test('should toggle message expansion state', () => {
       const conversationId = 'conv-1';
       const messageId = 'msg-1';
 
@@ -100,7 +100,7 @@ describe('ConversationExpandManager', () => {
       assert.strictEqual(expandManager.isMessageExpanded(conversationId, messageId), false);
     });
 
-    it('should handle multiple messages in same conversation', () => {
+    test('should handle multiple messages in same conversation', () => {
       const conversationId = 'conv-1';
       const msg1 = 'msg-1';
       const msg2 = 'msg-2';
@@ -116,7 +116,7 @@ describe('ConversationExpandManager', () => {
       assert.strictEqual(expandManager.isMessageExpanded(conversationId, msg2), true);
     });
 
-    it('should expand all messages in conversation', () => {
+    test('should expand all messages in conversation', () => {
       const conversationId = 'conv-1';
       const messageIds = ['msg-1', 'msg-2', 'msg-3'];
 
@@ -127,7 +127,7 @@ describe('ConversationExpandManager', () => {
       }
     });
 
-    it('should collapse all messages in conversation', () => {
+    test('should collapse all messages in conversation', () => {
       const conversationId = 'conv-1';
       const messageIds = ['msg-1', 'msg-2', 'msg-3'];
 
@@ -143,8 +143,8 @@ describe('ConversationExpandManager', () => {
     });
   });
 
-  describe('message formatting', () => {
-    it('should format messages for display with default options', async () => {
+  suite('message formatting', () => {
+    test('should format messages for display with default options', async () => {
       const conversationId = 'conv-1';
       const messages: Message[] = [
         {
@@ -191,7 +191,7 @@ describe('ConversationExpandManager', () => {
       assert.ok(formattedMessages[1].codeChangesSummary);
     });
 
-    it('should truncate long content when not expanded', async () => {
+    test('should truncate long content when not expanded', async () => {
       const conversationId = 'conv-1';
       const longContent = 'A'.repeat(200); // 200 characters
       const messages: Message[] = [
@@ -222,7 +222,7 @@ describe('ConversationExpandManager', () => {
       assert.ok(formattedMessages[0].displayContent.endsWith('...'));
     });
 
-    it('should highlight search terms in content', async () => {
+    test('should highlight search terms in content', async () => {
       const conversationId = 'conv-1';
       const messages: Message[] = [
         {
@@ -252,7 +252,7 @@ describe('ConversationExpandManager', () => {
       assert.ok(formattedMessages[0].displayContent.includes('**important**'));
     });
 
-    it('should format timestamps correctly', async () => {
+    test('should format timestamps correctly', async () => {
       const conversationId = 'conv-1';
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 30, 0);
@@ -303,8 +303,8 @@ describe('ConversationExpandManager', () => {
     });
   });
 
-  describe('code changes summary', () => {
-    it('should generate correct summary for different change types', async () => {
+  suite('code changes summary', () => {
+    test('should generate correct summary for different change types', async () => {
       const conversationId = 'conv-1';
       const messages: Message[] = [
         {
@@ -332,7 +332,7 @@ describe('ConversationExpandManager', () => {
       assert.ok(formattedMessages[0].codeChangesSummary!.includes('3 files'));
     });
 
-    it('should handle single file changes correctly', async () => {
+    test('should handle single file changes correctly', async () => {
       const conversationId = 'conv-1';
       const messages: Message[] = [
         {
@@ -357,8 +357,8 @@ describe('ConversationExpandManager', () => {
     });
   });
 
-  describe('expansion statistics', () => {
-    it('should return correct expansion statistics', () => {
+  suite('expansion statistics', () => {
+    test('should return correct expansion statistics', () => {
       const conv1 = 'conv-1';
       const conv2 = 'conv-2';
 
@@ -377,7 +377,7 @@ describe('ConversationExpandManager', () => {
       assert.strictEqual(stats.totalExpandedMessages, 2);
     });
 
-    it('should return zero stats for empty state', () => {
+    test('should return zero stats for empty state', () => {
       const stats = expandManager.getExpansionStats();
 
       assert.strictEqual(stats.totalConversations, 0);
@@ -386,8 +386,8 @@ describe('ConversationExpandManager', () => {
     });
   });
 
-  describe('persistence', () => {
-    it('should save expansion states to global state', () => {
+  suite('persistence', () => {
+    test('should save expansion states to global state', () => {
       const conversationId = 'conv-1';
       const messageId = 'msg-1';
 
@@ -398,7 +398,7 @@ describe('ConversationExpandManager', () => {
       assert.ok((mockContext.globalState.update as sinon.SinonStub).called);
     });
 
-    it('should load expansion states from global state', () => {
+    test('should load expansion states from global state', () => {
       const savedStates = [
         {
           conversationId: 'conv-1',

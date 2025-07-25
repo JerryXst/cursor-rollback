@@ -166,7 +166,7 @@ export class ConfigurationManager {
   validateConfiguration<K extends keyof CursorCompanionConfig>(
     key: K,
     value: CursorCompanionConfig[K]
-  ): ValidationResult {
+  ): ConfigValidationResult {
     const schema = this.getConfigurationSchema();
     const fieldSchema = schema[key];
     
@@ -446,7 +446,7 @@ export interface ConfigurationSchema {
   };
 }
 
-export interface ValidationResult {
+export interface ConfigValidationResult {
   valid: boolean;
   error?: string;
 }

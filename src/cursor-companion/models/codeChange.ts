@@ -33,6 +33,9 @@ export interface CodeChange {
     
     /** Confidence score for AI detection */
     confidence?: number;
+
+    /** When this change occured */
+    timestamp?: number;
   };
 }
 

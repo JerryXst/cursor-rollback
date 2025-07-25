@@ -245,7 +245,7 @@ export function checkConversationIntegrity(
     // Attempt repair if requested
     if (options.autoRepair) {
       repairsAttempted = true;
-      const repairResult = await repairConversationData(conversationToCheck, {
+      const repairResult = repairConversationEnhanced(conversationToCheck, {
         setDefaultValues: true,
         generateMissingIds: false // Don't generate IDs as they are critical
       });

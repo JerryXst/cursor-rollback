@@ -56,10 +56,10 @@ export interface Initializable {
   initialize(): Promise<void>;
 }
 
-/**
- * Configuration interface for the extension
- */
-export interface CursorCompanionConfig {
+// /**
+//  * Configuration interface for the extension
+//  */
+export interface CursorCompanionConfig_1 {
   /** Maximum number of conversations to keep in memory */
   maxConversations: number;
   
@@ -85,7 +85,7 @@ export interface CursorCompanionConfig {
 /**
  * Default configuration values
  */
-export const DEFAULT_CONFIG: CursorCompanionConfig = {
+export const DEFAULT_CONFIG: CursorCompanionConfig_1 = {
   maxConversations: 1000,
   maxMessagesPerConversation: 500,
   snapshotRetentionDays: 30,

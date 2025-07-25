@@ -36,7 +36,7 @@ export interface HeuristicDetectionResult {
     detectedPatterns: string[];
     
     /** Features used for detection */
-    features: Record<string, number | boolean | string>;
+    features: Record<string, number | boolean | string | Set<string> >;
   };
 }
 
@@ -120,7 +120,7 @@ export class HeuristicDetector {
     }
     
     // Track features for detection
-    const features: Record<string, number | boolean | string> = {
+    const features: Record<string, number | boolean | string | Set<string> > = {
       totalChanges: codeChanges.length,
       hasCreateOperations: false,
       hasModifyOperations: false,
@@ -215,7 +215,7 @@ export class HeuristicDetector {
     features.maxChangeSize = maxContentSize;
     features.totalChangeSize = totalContentSize;
     features.multipleLanguages = languages.size > 1;
-    features.languages = Array.from(languages);
+    features.languages = new Set<string>(languages);
     features.patternMatchCount = patternMatchCount;
     
     // Calculate confidence score
@@ -247,7 +247,7 @@ export class HeuristicDetector {
    * @param features Extracted features from code changes
    * @returns Confidence score between 0 and 1
    */
-  private calculateAiConfidence(features: Record<string, number | boolean | string>): number {
+  private calculateAiConfidence(features: Record<string, number | boolean | string | Set<string> >): number {
     let score = 0;
     let maxScore = 0;
     

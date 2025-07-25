@@ -66,7 +66,7 @@ export class ConversationFactory {
         sender: 'user'
       });
 
-      conversation.messages = [message.id];
+      conversation.messages = [message];
       conversation.metadata!.messageCount = 1;
       conversation.metadata!.lastActivity = message.timestamp;
 

@@ -3,7 +3,7 @@
  * Validates search functionality, filtering, and result highlighting
  */
 
-import { describe, it, beforeEach, afterEach } from 'mocha';
+// Using global mocha functions
 import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
@@ -11,13 +11,13 @@ import { SearchFilterProvider, SearchFilterOptions } from '../cursor-companion/u
 import { LocalFileStorage } from '../cursor-companion/services/localFileStorage';
 import { Conversation, Message } from '../cursor-companion/models';
 
-describe('SearchFilterProvider', () => {
+suite('SearchFilterProvider', () => {
   let searchFilterProvider: SearchFilterProvider;
   let mockContext: vscode.ExtensionContext;
   let mockDataStorage: LocalFileStorage;
   let sandbox: sinon.SinonSandbox;
 
-  beforeEach(() => {
+  setup(() => {
     sandbox = sinon.createSandbox();
 
     // Create mock context
@@ -38,19 +38,19 @@ describe('SearchFilterProvider', () => {
     searchFilterProvider = new SearchFilterProvider(mockContext, mockDataStorage);
   });
 
-  afterEach(() => {
+  teardown(() => {
     searchFilterProvider.dispose();
     sandbox.restore();
   });
 
-  describe('search functionality', () => {
-    it('should perform basic text search', async () => {
+  suite('search functionality', () => {
+    test('should perform basic text search', async () => {
       const conversations: Conversation[] = [
         {
           id: 'conv-1',
           title: 'Test conversation about JavaScript',
           timestamp: Date.now(),
-          messages: ['msg-1'],
+          messages: [],
           status: 'active'
         }
       ];
@@ -77,13 +77,13 @@ describe('SearchFilterProvider', () => {
       assert.ok(results.some(r => r.matchType === 'content'));
     });
 
-    it('should highlight search terms in results', async () => {
+    test('should highlight search terms in results', async () => {
       const conversations: Conversation[] = [
         {
           id: 'conv-1',
           title: 'JavaScript tutorial',
           timestamp: Date.now(),
-          messages: ['msg-1'],
+          messages: [],
           status: 'active'
         }
       ];
@@ -97,7 +97,7 @@ describe('SearchFilterProvider', () => {
       assert.ok(results[0].highlightedText.includes('**JavaScript**'));
     });
 
-    it('should handle case insensitive search by default', async () => {
+    test('should handle case insensitive search by default', async () => {
       const conversations: Conversation[] = [
         {
           id: 'conv-1',
@@ -117,7 +117,7 @@ describe('SearchFilterProvider', () => {
       assert.strictEqual(results[0].matchType, 'title');
     });
 
-    it('should handle case sensitive search when specified', async () => {
+    test('should handle case sensitive search when specified', async () => {
       const conversations: Conversation[] = [
         {
           id: 'conv-1',
@@ -136,14 +136,14 @@ describe('SearchFilterProvider', () => {
       assert.strictEqual(results.length, 0);
     });
 
-    it('should return empty results for empty query', async () => {
+    test('should return empty results for empty query', async () => {
       const results = await searchFilterProvider.searchImmediate('');
       assert.strictEqual(results.length, 0);
     });
   });
 
-  describe('filtering functionality', () => {
-    it('should filter by conversation status', async () => {
+  suite('filtering functionality', () => {
+    test('should filter by conversation status', async () => {
       const conversations: Conversation[] = [
         {
           id: 'conv-1',
@@ -170,13 +170,13 @@ describe('SearchFilterProvider', () => {
       assert.strictEqual(results[0].conversation.status, 'active');
     });
 
-    it('should filter by message sender', async () => {
+    test('should filter by message sender', async () => {
       const conversations: Conversation[] = [
         {
           id: 'conv-1',
           title: 'Test conversation',
           timestamp: Date.now(),
-          messages: ['msg-1', 'msg-2'],
+          messages: [],
           status: 'active'
         }
       ];
@@ -213,7 +213,7 @@ describe('SearchFilterProvider', () => {
       assert.strictEqual(messageResults[0].message!.sender, 'user');
     });
 
-    it('should filter by tags', async () => {
+    test('should filter by tags', async () => {
       const conversations: Conversation[] = [
         {
           id: 'conv-1',
@@ -245,7 +245,7 @@ describe('SearchFilterProvider', () => {
       assert.strictEqual(results[0].conversation.id, 'conv-1');
     });
 
-    it('should filter by date range', async () => {
+    test('should filter by date range', async () => {
       const now = Date.now();
       const yesterday = now - 24 * 60 * 60 * 1000;
       const tomorrow = now + 24 * 60 * 60 * 1000;
@@ -281,13 +281,13 @@ describe('SearchFilterProvider', () => {
       assert.strictEqual(results[0].conversation.id, 'conv-1');
     });
 
-    it('should filter by code changes', async () => {
+    test('should filter by code changes', async () => {
       const conversations: Conversation[] = [
         {
           id: 'conv-1',
           title: 'Test conversation',
           timestamp: Date.now(),
-          messages: ['msg-1', 'msg-2'],
+          messages: [],
           status: 'active'
         }
       ];
@@ -326,8 +326,8 @@ describe('SearchFilterProvider', () => {
     });
   });
 
-  describe('search suggestions', () => {
-    it('should provide search suggestions based on input', async () => {
+  suite('search suggestions', () => {
+    test('should provide search suggestions based on input', async () => {
       // Mock search history
       const history = [
         { query: 'javascript function', timestamp: Date.now(), resultCount: 5 },
@@ -365,7 +365,7 @@ describe('SearchFilterProvider', () => {
       assert.ok(suggestions.some(s => s.type === 'keyword'));
     });
 
-    it('should return empty suggestions for no matches', async () => {
+    test('should return empty suggestions for no matches', async () => {
       (mockDataStorage.getConversations as sinon.SinonStub).resolves([]);
 
       const suggestions = await searchFilterProvider.getSearchSuggestions('nonexistent');
@@ -375,8 +375,8 @@ describe('SearchFilterProvider', () => {
     });
   });
 
-  describe('search history', () => {
-    it('should track search history', async () => {
+  suite('search history', () => {
+    test('should track search history', async () => {
       (mockDataStorage.getConversations as sinon.SinonStub).resolves([]);
       (mockDataStorage.getMessages as sinon.SinonStub).resolves([]);
 
@@ -388,7 +388,7 @@ describe('SearchFilterProvider', () => {
       assert.strictEqual(history[0].resultCount, 0);
     });
 
-    it('should limit search history size', async () => {
+    test('should limit search history size', async () => {
       (mockDataStorage.getConversations as sinon.SinonStub).resolves([]);
       (mockDataStorage.getMessages as sinon.SinonStub).resolves([]);
 
@@ -401,7 +401,7 @@ describe('SearchFilterProvider', () => {
       assert.ok(history.length <= 50); // Should be limited to maxHistoryItems
     });
 
-    it('should clear search history', async () => {
+    test('should clear search history', async () => {
       (mockDataStorage.getConversations as sinon.SinonStub).resolves([]);
       (mockDataStorage.getMessages as sinon.SinonStub).resolves([]);
 
@@ -413,8 +413,8 @@ describe('SearchFilterProvider', () => {
     });
   });
 
-  describe('filter management', () => {
-    it('should apply and get current filter', async () => {
+  suite('filter management', () => {
+    test('should apply and get current filter', async () => {
       const filter: SearchFilterOptions = {
         status: 'active',
         sender: 'user',
@@ -427,7 +427,7 @@ describe('SearchFilterProvider', () => {
       assert.deepStrictEqual(currentFilter, filter);
     });
 
-    it('should clear all filters', async () => {
+    test('should clear all filters', async () => {
       const filter: SearchFilterOptions = {
         status: 'active',
         sender: 'user'
@@ -441,8 +441,8 @@ describe('SearchFilterProvider', () => {
     });
   });
 
-  describe('callbacks', () => {
-    it('should notify search result callbacks', async () => {
+  suite('callbacks', () => {
+    test('should notify search result callbacks', async () => {
       const callback = sandbox.stub();
       searchFilterProvider.onSearchResults(callback);
 
@@ -455,7 +455,7 @@ describe('SearchFilterProvider', () => {
       assert.ok(Array.isArray(callback.firstCall.args[0]));
     });
 
-    it('should notify filter change callbacks', async () => {
+    test('should notify filter change callbacks', async () => {
       const callback = sandbox.stub();
       searchFilterProvider.onFilterChange(callback);
 
@@ -467,8 +467,8 @@ describe('SearchFilterProvider', () => {
     });
   });
 
-  describe('error handling', () => {
-    it('should handle search errors gracefully', async () => {
+  suite('error handling', () => {
+    test('should handle search errors gracefully', async () => {
       (mockDataStorage.getConversations as sinon.SinonStub).rejects(new Error('Database error'));
 
       const results = await searchFilterProvider.searchImmediate('test');
@@ -476,20 +476,20 @@ describe('SearchFilterProvider', () => {
       assert.strictEqual(results.length, 0);
     });
 
-    it('should handle individual conversation errors gracefully', async () => {
+    test('should handle individual conversation errors gracefully', async () => {
       const conversations: Conversation[] = [
         {
           id: 'conv-1',
           title: 'Working conversation',
           timestamp: Date.now(),
-          messages: ['msg-1'],
+          messages: [],
           status: 'active'
         },
         {
           id: 'conv-2',
           title: 'Broken conversation',
           timestamp: Date.now(),
-          messages: ['msg-2'],
+          messages: [],
           status: 'active'
         }
       ];

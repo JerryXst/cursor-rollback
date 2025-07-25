@@ -177,7 +177,9 @@ export class BackupManager {
         includeSnapshots: options.includeSnapshots ?? true,
         includeIndexes: options.includeIndexes ?? true,
         conversationIds: options.conversationIds || [],
-        progress: options.progress || undefined
+        progress: options.progress || {
+          report: () => {}
+        } as vscode.Progress<{ message?: string; increment?: number }>
       };
       
       // Create backup directory structure
@@ -397,7 +399,9 @@ export class BackupManager {
         includeSnapshots: options.includeSnapshots ?? true,
         includeIndexes: options.includeIndexes ?? true,
         conversationIds: options.conversationIds || [],
-        progress: options.progress || undefined
+        progress: options.progress || {
+          report: () => {}
+        } as vscode.Progress<{ message?: string; increment?: number }>
       };
       
       // Initialize result

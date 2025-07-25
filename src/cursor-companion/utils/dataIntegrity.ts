@@ -140,13 +140,13 @@ export function detectConversationCorruption(conversation: Conversation): Corrup
     canRepair = true; // Can initialize empty array
   } else {
     // Check for message ID validity
-    conversation.messages.forEach((messageId, index) => {
-      if (typeof messageId !== 'string' || messageId.trim() === '') {
+    conversation.messages.forEach((message, index) => {
+      if (typeof message.id !== 'string' || message.id.trim() === '') {
         errors.push(
           new ValidationError(
-            `Message ID ${index} is invalid: ${messageId}`,
+            `Message ID ${index} is invalid: ${message.id}`,
             `messages[${index}]`,
-            messageId
+            message.id
           )
         );
         corruptedFields.push(`messages[${index}]`);
@@ -339,20 +339,20 @@ export function repairConversation(conversation: Conversation, options: RepairOp
     
     // Repair messages (message IDs)
     if (Array.isArray(conversation.messages)) {
-      const repairedMessageIds: string[] = [];
+      const repairedMessageIds: Message[] = [];
       
       for (let i = 0; i < conversation.messages.length; i++) {
-        const messageId = conversation.messages[i];
+        const message = conversation.messages[i];
         
         // Check if message ID is valid
-        if (typeof messageId === 'string' && messageId.trim() !== '') {
-          repairedMessageIds.push(messageId);
+        if (typeof message.id === 'string' && message.id.trim() !== '') {
+          repairedMessageIds.push(message);
         } else if (options.removeCorruptedItems) {
           // Remove invalid message ID
           result.removedItems.push(`messages[${i}]`);
         } else {
           // Keep invalid ID if removal is not allowed
-          repairedMessageIds.push(messageId);
+          repairedMessageIds.push(message);
         }
       }
       
@@ -414,7 +414,8 @@ export function verifyDataConsistency(conversation: Conversation): ValidationRes
   
   // Check if messages is an array of strings (message IDs)
   if (Array.isArray(conversation.messages)) {
-    conversation.messages.forEach((messageId, index) => {
+    conversation.messages.forEach((message, index) => {
+      const messageId = message.id;
       if (typeof messageId !== 'string' || messageId.trim() === '') {
         errors.push(
           new ValidationError(
@@ -549,7 +550,8 @@ export function validateReferentialIntegrity(conversation: Conversation): Valida
   }
   
   // With lazy loading model, we can only validate that message IDs are valid strings
-  conversation.messages.forEach((messageId, index) => {
+  conversation.messages.forEach((message, index) => {
+    const messageId = message.id;
     if (typeof messageId !== 'string' || messageId.trim() === '') {
       errors.push(
         new ValidationError(

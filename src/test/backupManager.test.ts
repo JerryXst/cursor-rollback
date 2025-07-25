@@ -20,12 +20,14 @@ suite('BackupManager Tests', () => {
       subscriptions: [],
       workspaceState: {
         get: (key: string) => undefined,
-        update: (key: string, value: any) => Promise.resolve()
+        update: (key: string, value: any) => Promise.resolve(),
+        keys: () => []
       },
       globalState: {
         get: (key: string) => undefined,
         update: (key: string, value: any) => Promise.resolve(),
-        setKeysForSync: (keys: string[]) => {}
+        setKeysForSync: (keys: string[]) => {},
+        keys: () => []
       },
       extensionPath: path.join(__dirname, '..', '..'),
       asAbsolutePath: (relativePath: string) => path.join(__dirname, '..', '..', relativePath),
@@ -39,7 +41,12 @@ suite('BackupManager Tests', () => {
       secrets: {
         get: (key: string) => Promise.resolve(undefined),
         store: (key: string, value: string) => Promise.resolve(),
-        delete: (key: string) => Promise.resolve()
+        delete: (key: string) => Promise.resolve(),
+        onDidChange: new vscode.EventEmitter<vscode.SecretStorageChangeEvent>().event
+      },
+      languageModelAccessInformation: {
+        onDidChange: new vscode.EventEmitter<void>().event,
+        canSendRequest: (chat: any) => false
       },
       extension: {} as any
     } as vscode.ExtensionContext;

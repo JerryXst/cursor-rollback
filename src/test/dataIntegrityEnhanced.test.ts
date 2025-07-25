@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { describe, it } from 'mocha';
+// Using global mocha functions
 import { 
   checkConversationIntegrity,
   IntegrityCheckLevel,
@@ -28,7 +28,7 @@ import { CodeChange } from '../cursor-companion/models/codeChange';
 import { calculateStrongChecksum } from '../cursor-companion/utils/dataIntegrity';
 import { DataIntegrityError } from '../cursor-companion/models/errors';
 
-describe('Enhanced Data Integrity Tests', () => {
+suite('Enhanced Data Integrity Tests', () => {
   // Helper function to create a valid conversation for testing
   function createValidConversation(): Conversation {
     const now = Date.now();
@@ -44,7 +44,7 @@ describe('Enhanced Data Integrity Tests', () => {
           sender: 'user',
           timestamp: now - 4000,
           codeChanges: [],
-          snapshot: []
+          snapshot: [],
         },
         {
           id: 'msg-2',
@@ -99,19 +99,19 @@ describe('Enhanced Data Integrity Tests', () => {
     };
   }
 
-  describe('checkConversationIntegrity', () => {
-    it('should validate a valid conversation at basic level', () => {
+  suite('checkConversationIntegrity', () => {
+    test('should validate a valid conversation at basic level', async () => {
       const conversation = createValidConversation();
-      const result = checkConversationIntegrity(conversation, { level: IntegrityCheckLevel.BASIC });
+      const result = await checkConversationIntegrity(conversation, { level: IntegrityCheckLevel.BASIC });
       
       assert.strictEqual(result.isValid, true);
       assert.strictEqual(result.errors.length, 0);
       assert.strictEqual(result.details?.structuralValidity?.isValid, true);
     });
     
-    it('should validate a valid conversation at standard level', () => {
+    test('should validate a valid conversation at standard level', async () => {
       const conversation = createValidConversation();
-      const result = checkConversationIntegrity(conversation, { level: IntegrityCheckLevel.STANDARD });
+      const result = await checkConversationIntegrity(conversation, { level: IntegrityCheckLevel.STANDARD });
       
       assert.strictEqual(result.isValid, true);
       assert.strictEqual(result.errors.length, 0);
@@ -119,9 +119,9 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.strictEqual(result.details?.checksumValidity?.isValid, true);
     });
     
-    it('should validate a valid conversation at comprehensive level', () => {
+    test('should validate a valid conversation at comprehensive level', async () => {
       const conversation = createValidConversation();
-      const result = checkConversationIntegrity(conversation, { level: IntegrityCheckLevel.COMPREHENSIVE });
+      const result = await checkConversationIntegrity(conversation, { level: IntegrityCheckLevel.COMPREHENSIVE });
       
       assert.strictEqual(result.isValid, true);
       assert.strictEqual(result.errors.length, 0);
@@ -131,45 +131,45 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.strictEqual(result.details?.temporalConsistency?.isValid, true);
     });
     
-    it('should detect structural issues', () => {
+    test('should detect structural issues', async () => {
       const conversation = createValidConversation();
       // Introduce a structural issue
       conversation.messages[0].sender = 'invalid' as any;
       
-      const result = checkConversationIntegrity(conversation, { level: IntegrityCheckLevel.BASIC });
+      const result = await checkConversationIntegrity(conversation, { level: IntegrityCheckLevel.BASIC });
       
       assert.strictEqual(result.isValid, false);
       assert.ok(result.errors.length > 0);
       assert.strictEqual(result.details?.structuralValidity?.isValid, false);
     });
     
-    it('should detect checksum issues', () => {
+    test('should detect checksum issues', async () => {
       const conversation = createValidConversation();
       // Introduce a checksum issue
       if (conversation.messages[1].snapshot && conversation.messages[1].snapshot.length > 0) {
         conversation.messages[1].snapshot[0].checksum = 'invalid-checksum';
       }
       
-      const result = checkConversationIntegrity(conversation, { level: IntegrityCheckLevel.STANDARD });
+      const result = await checkConversationIntegrity(conversation, { level: IntegrityCheckLevel.STANDARD });
       
       assert.strictEqual(result.isValid, false);
       assert.ok(result.errors.length > 0);
       assert.strictEqual(result.details?.checksumValidity?.isValid, false);
     });
     
-    it('should detect referential integrity issues', () => {
+    test('should detect referential integrity issues', async () => {
       const conversation = createValidConversation();
       // Introduce a referential integrity issue
       conversation.messages[0].conversationId = 'wrong-id';
       
-      const result = checkConversationIntegrity(conversation, { level: IntegrityCheckLevel.COMPREHENSIVE });
+      const result = await checkConversationIntegrity(conversation, { level: IntegrityCheckLevel.COMPREHENSIVE });
       
       assert.strictEqual(result.isValid, false);
       assert.ok(result.errors.length > 0);
       assert.strictEqual(result.details?.referentialIntegrity?.isValid, false);
     });
     
-    it('should detect temporal consistency issues', () => {
+    test('should detect temporal consistency issues', () => {
       const conversation = createValidConversation();
       // Introduce a temporal consistency issue
       conversation.messages[0].timestamp = conversation.messages[1].timestamp + 1000;
@@ -181,7 +181,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.strictEqual(result.details?.temporalConsistency?.isValid, false);
     });
     
-    it('should attempt repairs when autoRepair is true', () => {
+    test('should attempt repairs when autoRepair is true', () => {
       const conversation = createValidConversation();
       // Introduce a repairable issue
       conversation.status = 'invalid' as any;
@@ -196,7 +196,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.strictEqual(conversation.status, 'active');
     });
     
-    it('should throw when throwOnFailure is true and there are errors', () => {
+    test('should throw when throwOnFailure is true and there are errors', () => {
       const conversation = createValidConversation();
       // Introduce an issue
       conversation.messages[0].sender = 'invalid' as any;
@@ -210,8 +210,8 @@ describe('Enhanced Data Integrity Tests', () => {
     });
   });
   
-  describe('validateConversationStructure', () => {
-    it('should validate a valid conversation structure', () => {
+  suite('validateConversationStructure', () => {
+    test('should validate a valid conversation structure', () => {
       const conversation = createValidConversation();
       const result = validateConversationStructure(conversation);
       
@@ -219,9 +219,9 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.strictEqual(result.errors.length, 0);
     });
     
-    it('should detect missing required fields', () => {
+    test('should detect missing required fields', () => {
       const conversation = {
-        // Missing id
+        id: 'test-conv-1',
         title: 'Test Conversation',
         timestamp: Date.now(),
         messages: [],
@@ -235,7 +235,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.ok(result.errors.some(e => e.field === 'id'));
     });
     
-    it('should validate message structures within the conversation', () => {
+    test('should validate message structures within the conversation', () => {
       const conversation = createValidConversation();
       // Introduce an issue in a message
       conversation.messages[0].sender = 'invalid' as any;
@@ -248,8 +248,8 @@ describe('Enhanced Data Integrity Tests', () => {
     });
   });
   
-  describe('validateMessageStructure', () => {
-    it('should validate a valid message structure', () => {
+  suite('validateMessageStructure', () => {
+    test('should validate a valid message structure', () => {
       const message = createValidConversation().messages[0];
       const result = validateMessageStructure(message);
       
@@ -257,10 +257,10 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.strictEqual(result.errors.length, 0);
     });
     
-    it('should detect missing required fields', () => {
+    test('should detect missing required fields', () => {
       const message = {
         id: 'msg-1',
-        // Missing conversationId
+        conversationId: 'conv-1',
         content: 'Test message',
         sender: 'user',
         timestamp: Date.now(),
@@ -275,7 +275,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.ok(result.errors.some(e => e.field === 'conversationId'));
     });
     
-    it('should validate code changes within the message', () => {
+    test('should validate code changes within the message', () => {
       const message = createValidConversation().messages[1];
       // Introduce an issue in a code change
       if (message.codeChanges && message.codeChanges.length > 0) {
@@ -289,7 +289,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.ok(result.errors.some(e => e.field?.includes('codeChanges[0].changeType')));
     });
     
-    it('should validate snapshots within the message', () => {
+    test('should validate snapshots within the message', () => {
       const message = createValidConversation().messages[1];
       // Introduce an issue in a snapshot
       if (message.snapshot && message.snapshot.length > 0) {
@@ -304,8 +304,8 @@ describe('Enhanced Data Integrity Tests', () => {
     });
   });
   
-  describe('validateCodeChangeStructure', () => {
-    it('should validate a valid code change structure', () => {
+  suite('validateCodeChangeStructure', () => {
+    test('should validate a valid code change structure', () => {
       const codeChange: CodeChange = {
         filePath: 'test/file.js',
         changeType: 'modify',
@@ -320,7 +320,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.strictEqual(result.errors.length, 0);
     });
     
-    it('should validate content requirements based on change type', () => {
+    test('should validate content requirements based on change type', () => {
       // Create change
       const createChange: CodeChange = {
         filePath: 'test/file.js',
@@ -358,7 +358,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.ok(modifyResult.errors.some(e => e.field?.includes('beforeContent')));
     });
     
-    it('should validate line numbers', () => {
+    test('should validate line numbers', () => {
       const codeChange: CodeChange = {
         filePath: 'test/file.js',
         changeType: 'modify',
@@ -374,8 +374,8 @@ describe('Enhanced Data Integrity Tests', () => {
     });
   });
   
-  describe('validateFileSnapshotStructure', () => {
-    it('should validate a valid file snapshot structure', () => {
+  suite('validateFileSnapshotStructure', () => {
+    test('should validate a valid file snapshot structure', () => {
       const snapshot: FileSnapshot = {
         filePath: 'test/file.js',
         content: 'console.log("test");',
@@ -389,7 +389,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.strictEqual(result.errors.length, 0);
     });
     
-    it('should detect path traversal attempts', () => {
+    test('should detect path traversal attempts', () => {
       const snapshot: FileSnapshot = {
         filePath: '../../../etc/passwd', // Path traversal attempt
         content: 'test content',
@@ -403,7 +403,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.ok(result.errors.some(e => e.field === 'filePath' && e.message.includes('path traversal')));
     });
     
-    it('should validate metadata if present', () => {
+    test('should validate metadata if present', () => {
       const snapshot: FileSnapshot = {
         filePath: 'test/file.js',
         content: 'console.log("test");',
@@ -426,8 +426,8 @@ describe('Enhanced Data Integrity Tests', () => {
     });
   });
   
-  describe('verifySnapshotCollectionIntegrityComprehensive', () => {
-    it('should validate a valid snapshot collection', () => {
+  suite('verifySnapshotCollectionIntegrityComprehensive', () => {
+    test('should validate a valid snapshot collection', () => {
       const collection = createValidSnapshotCollection();
       const result = verifySnapshotCollectionIntegrityComprehensive(collection);
       
@@ -435,7 +435,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.strictEqual(result.errors.length, 0);
     });
     
-    it('should detect duplicate file paths', () => {
+    test('should detect duplicate file paths', () => {
       const collection = createValidSnapshotCollection();
       // Add duplicate file path
       collection.snapshots.push({
@@ -451,7 +451,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.ok(result.errors.some(e => e.message.includes('Duplicate file path')));
     });
     
-    it('should detect timestamp inconsistencies', () => {
+    test('should detect timestamp inconsistencies', () => {
       const collection = createValidSnapshotCollection();
       // Make snapshot timestamp later than collection timestamp
       collection.snapshots[0].timestamp = collection.timestamp + 1000;
@@ -462,7 +462,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.ok(result.errors.some(e => e.message.includes('timestamp')));
     });
     
-    it('should throw when throwOnFailure is true and there are errors', () => {
+    test('should throw when throwOnFailure is true and there are errors', () => {
       const collection = createValidSnapshotCollection();
       // Introduce an issue
       collection.snapshots[0].checksum = 'invalid-checksum';
@@ -473,8 +473,8 @@ describe('Enhanced Data Integrity Tests', () => {
     });
   });
   
-  describe('repairSnapshotCollection', () => {
-    it('should repair a snapshot collection with checksum issues', () => {
+  suite('repairSnapshotCollection', () => {
+    test('should repair a snapshot collection with checksum issues', () => {
       const collection = createValidSnapshotCollection();
       // Introduce a checksum issue
       collection.snapshots[0].checksum = 'invalid-checksum';
@@ -486,7 +486,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.strictEqual(collection.snapshots[0].checksum, calculateStrongChecksum(collection.snapshots[0].content));
     });
     
-    it('should repair a snapshot collection with timestamp issues', () => {
+    test('should repair a snapshot collection with timestamp issues', () => {
       const collection = createValidSnapshotCollection();
       // Introduce a timestamp issue
       collection.snapshots[0].timestamp = -1;
@@ -498,7 +498,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.strictEqual(collection.snapshots[0].timestamp, collection.timestamp);
     });
     
-    it('should remove corrupted snapshots when removeCorruptedItems is true', () => {
+    test('should remove corrupted snapshots when removeCorruptedItems is true', () => {
       const collection = createValidSnapshotCollection();
       // Add a corrupted snapshot
       collection.snapshots.push({
@@ -520,8 +520,8 @@ describe('Enhanced Data Integrity Tests', () => {
     });
   });
   
-  describe('verifyDataIntegrityAcrossObjects', () => {
-    it('should validate relationships between objects', () => {
+  suite('verifyDataIntegrityAcrossObjects', () => {
+    test('should validate relationships between objects', () => {
       const objects = {
         conversation: {
           id: 'conv-1',
@@ -550,7 +550,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.strictEqual(result.errors.length, 0);
     });
     
-    it('should detect relationship violations', () => {
+    test('should detect relationship violations', () => {
       const objects = {
         conversation: {
           id: 'conv-1',
@@ -580,7 +580,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.ok(result.errors[0].message.includes('Relationship violation'));
     });
     
-    it('should handle nested fields', () => {
+    test('should handle nested fields', () => {
       const objects = {
         user: {
           profile: {
@@ -611,8 +611,8 @@ describe('Enhanced Data Integrity Tests', () => {
     });
   });
   
-  describe('createDataIntegrityReport', () => {
-    it('should create a comprehensive report for a valid conversation', () => {
+  suite('createDataIntegrityReport', () => {
+    test('should create a comprehensive report for a valid conversation', () => {
       const conversation = createValidConversation();
       const report = createDataIntegrityReport(conversation);
       
@@ -626,7 +626,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.strictEqual(report.details.temporalConsistencyValid, true);
     });
     
-    it('should report issues in a corrupted conversation', () => {
+    test('should report issues in a corrupted conversation', () => {
       const conversation = createValidConversation();
       // Introduce multiple issues
       conversation.messages[0].conversationId = 'wrong-id';
@@ -642,8 +642,8 @@ describe('Enhanced Data Integrity Tests', () => {
     });
   });
   
-  describe('assertConversationIntegrity', () => {
-    it('should not throw for a valid conversation', () => {
+  suite('assertConversationIntegrity', () => {
+    test('should not throw for a valid conversation', () => {
       const conversation = createValidConversation();
       
       assert.doesNotThrow(() => {
@@ -651,7 +651,7 @@ describe('Enhanced Data Integrity Tests', () => {
       });
     });
     
-    it('should throw DataIntegrityError for an invalid conversation', () => {
+    test('should throw DataIntegrityError for an invalid conversation', () => {
       const conversation = createValidConversation();
       // Introduce an issue
       conversation.messages[0].sender = 'invalid' as any;
@@ -662,8 +662,8 @@ describe('Enhanced Data Integrity Tests', () => {
     });
   });
   
-  describe('assertSnapshotCollectionIntegrity', () => {
-    it('should not throw for a valid snapshot collection', () => {
+  suite('assertSnapshotCollectionIntegrity', () => {
+    test('should not throw for a valid snapshot collection', () => {
       const collection = createValidSnapshotCollection();
       
       assert.doesNotThrow(() => {
@@ -671,7 +671,7 @@ describe('Enhanced Data Integrity Tests', () => {
       });
     });
     
-    it('should throw DataIntegrityError for an invalid snapshot collection', () => {
+    test('should throw DataIntegrityError for an invalid snapshot collection', () => {
       const collection = createValidSnapshotCollection();
       // Introduce an issue
       collection.snapshots[0].checksum = 'invalid-checksum';
@@ -682,8 +682,8 @@ describe('Enhanced Data Integrity Tests', () => {
     });
   });
   
-  describe('detectConversationCorruptionEnhanced', () => {
-    it('should detect no corruption in a valid conversation', () => {
+  suite('detectConversationCorruptionEnhanced', () => {
+    test('should detect no corruption in a valid conversation', () => {
       const conversation = createValidConversation();
       const result = detectConversationCorruptionEnhanced(conversation);
       
@@ -692,7 +692,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.strictEqual(result.severity, 'low');
     });
     
-    it('should detect and classify corruption severity', () => {
+    test('should detect and classify corruption severity', () => {
       const conversation = createValidConversation();
       // Introduce a minor issue
       conversation.status = 'invalid' as any;
@@ -712,8 +712,8 @@ describe('Enhanced Data Integrity Tests', () => {
     });
   });
   
-  describe('repairConversationEnhanced', () => {
-    it('should repair a conversation with minor issues', () => {
+  suite('repairConversationEnhanced', () => {
+    test('should repair a conversation with minor issues', () => {
       const conversation = createValidConversation();
       // Introduce repairable issues
       conversation.status = 'invalid' as any;
@@ -732,7 +732,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.strictEqual(conversation.messages[0].sender, 'user');
     });
     
-    it('should handle critical issues appropriately', () => {
+    test('should handle critical issues appropriately', () => {
       const conversation = createValidConversation();
       // Introduce a critical issue
       conversation.id = undefined as any;
@@ -746,7 +746,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.ok(result.errors.length > 0);
     });
     
-    it('should remove corrupted items when requested', () => {
+    test('should remove corrupted items when requested', () => {
       const conversation = createValidConversation();
       // Corrupt a message beyond repair
       conversation.messages[1].id = undefined as any;
@@ -764,8 +764,8 @@ describe('Enhanced Data Integrity Tests', () => {
     });
   });
   
-  describe('safeParseAndValidateEnhanced', () => {
-    it('should parse and validate valid JSON', () => {
+  suite('safeParseAndValidateEnhanced', () => {
+    test('should parse and validate valid JSON', () => {
       const json = JSON.stringify({
         id: 'test-conv-1',
         title: 'Test Conversation',
@@ -785,7 +785,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.strictEqual(result.data.id, 'test-conv-1');
     });
     
-    it('should handle invalid JSON with detailed error reporting', () => {
+    test('should handle invalid JSON with detailed error reporting', () => {
       const json = '{ invalid json: }';
       
       const result = safeParseAndValidateEnhanced<Conversation>(
@@ -799,7 +799,7 @@ describe('Enhanced Data Integrity Tests', () => {
       assert.ok(result.parseError instanceof Error);
     });
     
-    it('should handle valid JSON with invalid data', () => {
+    test('should handle valid JSON with invalid data', () => {
       const json = JSON.stringify({
         id: 'test-conv-1',
         // Missing title

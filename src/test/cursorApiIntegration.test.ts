@@ -31,6 +31,19 @@ suite('Cursor API Integration Tests', () => {
       globalStoragePath: '',
       logPath: '',
       extensionUri: vscode.Uri.parse('file:///mock'),
+      storageUri: vscode.Uri.parse('file:///mock/storage'),
+      globalStorageUri: vscode.Uri.parse('file:///mock/global-storage'),
+      logUri: vscode.Uri.parse('file:///mock/logs'),
+      secrets: {
+        get: (key: string) => Promise.resolve(undefined),
+        store: (key: string, value: string) => Promise.resolve(),
+        delete: (key: string) => Promise.resolve(),
+        onDidChange: new vscode.EventEmitter<vscode.SecretStorageChangeEvent>().event
+      },
+      languageModelAccessInformation: {
+        onDidChange: new vscode.EventEmitter<void>().event,
+        canSendRequest: (chat: any) => false
+      },
       environmentVariableCollection: {} as any,
       extensionMode: vscode.ExtensionMode.Test,
       extension: {} as any,

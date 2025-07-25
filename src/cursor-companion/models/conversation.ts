@@ -1,3 +1,5 @@
+import { Message } from "./message";
+
 /**
  * Represents a complete conversation with Cursor AI
  */
@@ -12,7 +14,7 @@ export interface Conversation {
   timestamp: number;
   
   /** All messages in this conversation */
-  messages: string[]; // Message IDs for lazy loading
+  messages: Message[]; // Message for lazy loading
   
   /** Current status of the conversation */
   status: 'active' | 'archived';
@@ -20,10 +22,10 @@ export interface Conversation {
   /** Optional metadata */
   metadata?: {
     /** Total number of messages */
-    messageCount: number;
+    messageCount?: number;
     
     /** Last activity timestamp */
-    lastActivity: number;
+    lastActivity?: number;
     
     /** Tags for categorization */
     tags?: string[];
